@@ -2,6 +2,12 @@
 requires = ["setuptools>=68.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[tool.setuptools]
+packages = ["app"]
+
+[tool.setuptools.package-data]
+app = ["**/*.py"]
+
 [project]
 name = "sourcelens-backend"
 version = "0.1.0"
@@ -18,8 +24,10 @@ dependencies = [
     "uvicorn==0.24.0",
     "sqlalchemy==2.0.23",
     "psycopg2-binary==2.9.9",
+    "asyncpg==0.29.0",
     "pgvector==0.2.1",
     "pydantic==2.5.0",
+    "pydantic-settings==2.1.0",
     "alembic==1.13.0",
     "tree-sitter==0.20.4",
     "sentence-transformers==2.2.2",
