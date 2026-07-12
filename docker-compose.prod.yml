@@ -37,25 +37,3 @@ services:
       postgres:
         condition: service_healthy
     restart: unless-stopped
-    profiles:
-      - prod
-
-  frontend:
-    build:
-      context: ./frontend
-      args:
-        PROFILE: prod
-    container_name: sourcelens_frontend_prod
-    ports:
-      - "3000:3000"
-    environment:
-      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
-    depends_on:
-      - backend
-    restart: unless-stopped
-    profiles:
-      - prod
-
-volumes:
-  postgres_data_prod:
-    driver: local

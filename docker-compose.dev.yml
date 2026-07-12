@@ -35,8 +35,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    profiles:
-      - dev
 
   frontend:
     build:
@@ -53,8 +51,6 @@ services:
       - /app/node_modules
     depends_on:
       - backend
-    profiles:
-      - dev
 
 volumes:
   postgres_data:
