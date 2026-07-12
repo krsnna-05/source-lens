@@ -1,4 +1,5 @@
 """SQLAlchemy ORM models."""
-from sqlalchemy.orm import declarative_base
+from app.models.base import Base, TimestampMixin
+from app.models.user import User
 
-Base = declarative_base()
+__all__ = ["Base", "TimestampMixin", "User"]
