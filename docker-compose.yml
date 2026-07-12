@@ -1,8 +1,6 @@
-version: '3.8'
-
 services:
   postgres:
-    image: postgres:15-alpine
+    image: postgres:15
     container_name: sourcelens_postgres
     environment:
       POSTGRES_USER: sourcelens
@@ -18,50 +16,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    networks:
-      - sourcelens_network
-
-  pgvector:
-    image: pgvector/pgvector:latest
-    container_name: sourcelens_pgvector
-    environment:
-      POSTGRES_USER: sourcelens
-      POSTGRES_PASSWORD: sourcelens_dev
-      POSTGRES_DB: sourcelens_db
-    ports:
-      - "5433:5432"
-    volumes:
-      - pgvector_data:/var/lib/postgresql/data
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sourcelens"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - sourcelens_network
-    depends_on:
-      - postgres
-
-  ollama:
-    image: ollama/ollama:latest
-    container_name: sourcelens_ollama
-    ports:
-      - "11434:11434"
-    environment:
-      OLLAMA_HOST: 0.0.0.0:11434
-    volumes:
-      - ollama_data:/root/.ollama
-    networks:
-      - sourcelens_network
+    restart: unless-stopped
 
 volumes:
   postgres_data:
     driver: local
-  pgvector_data:
-    driver: local
-  ollama_data:
-    driver: local
-
-networks:
-  sourcelens_network:
-    driver: bridge
