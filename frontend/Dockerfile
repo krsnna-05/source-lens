@@ -1,24 +1,60 @@
-FROM node:18-alpine
+# ============================================
+# DEVELOPMENT STAGE - Fast, Hot Reload
+# ============================================
+FROM node:18-alpine AS dev
 
 WORKDIR /app
-
-ARG PROFILE=dev
-ENV PROFILE=${PROFILE}
 
 # Copy package files
 COPY package.json package-lock.json ./
 
-# Install dependencies
+# Install deps (cached)
 RUN npm ci
 
-# Copy application code
+# Copy app
 COPY . .
 
 EXPOSE 3000
+ENV APP_ENV=dev
 
-# Development: hot reload on port 3000
-CMD if [ "$PROFILE" = "dev" ] ; then \
-      npm run dev ; \
-    else \
-      npm run build && npm start ; \
-    fi
+CMD ["npm", "run", "dev"]
+
+# ============================================
+# BUILD STAGE - Compile Application
+# ============================================
+FROM node:18-alpine AS builder
+
+WORKDIR /app
+
+COPY package.json package-lock.json ./
+
+# Install deps
+RUN npm ci
+
+# Copy app
+COPY . .
+
+# Build Next.js
+RUN npm run build
+
+# ============================================
+# PRODUCTION STAGE - Minimal, Optimized
+# ============================================
+FROM node:18-alpine AS prod
+
+WORKDIR /app
+
+# Install only production deps
+COPY package.json package-lock.json ./
+
+RUN npm ci --only=production
+
+# Copy built app from builder
+COPY --from=builder /app/.next ./.next
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/package.json ./package.json
+
+EXPOSE 3000
+ENV APP_ENV=prod NODE_ENV=production
+
+CMD ["npm", "start"]

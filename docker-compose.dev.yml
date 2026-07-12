@@ -21,8 +21,7 @@ services:
   backend:
     build:
       context: ./backend
-      args:
-        PROFILE: dev
+      target: dev
     container_name: sourcelens_backend
     ports:
       - "8000:8000"
@@ -39,8 +38,7 @@ services:
   frontend:
     build:
       context: ./frontend
-      args:
-        PROFILE: dev
+      target: dev
     container_name: sourcelens_frontend
     ports:
       - "3000:3000"

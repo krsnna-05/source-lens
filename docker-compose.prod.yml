@@ -21,14 +21,13 @@ services:
   backend:
     build:
       context: ./backend
-      args:
-        PROFILE: prod
+      target: prod
     container_name: sourcelens_backend_prod
     ports:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://sourcelens:${POSTGRES_PASSWORD}@postgres:5432/sourcelens_db
-      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://ollama:11434}
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://localhost:11434}
       ENVIRONMENT: production
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
@@ -37,3 +36,20 @@ services:
       postgres:
         condition: service_healthy
     restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      target: prod
+    container_name: sourcelens_frontend_prod
+    ports:
+      - "3000:3000"
+    environment:
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000}
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data_prod:
+    driver: local
