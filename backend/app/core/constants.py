@@ -30,7 +30,6 @@ IGNORED_DIRS: set[str] = {
     "dist",
     "build",
     ".next",
-    ".pytest_cache",
     ".mypy_cache",
     "vendor",
 }

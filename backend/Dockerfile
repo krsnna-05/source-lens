@@ -8,11 +8,16 @@ WORKDIR /app
 # Install only runtime system deps
 RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
 
-# Copy and install Python deps
-COPY pyproject.toml .
+# Copy pyproject.toml and README (needed for setuptools)
+COPY pyproject.toml README.md ./
+
+# Copy app directory
+COPY app app/
+
+# Install Python deps
 RUN pip install --no-cache-dir -e .
 
-# Copy app
+# Copy remaining files
 COPY . .
 
 EXPOSE 8000
@@ -31,8 +36,11 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential git && rm -rf /var/lib/apt/lists/*
 
-# Copy deps
-COPY pyproject.toml .
+# Copy pyproject.toml and README (needed for setuptools)
+COPY pyproject.toml README.md ./
+
+# Copy app directory
+COPY app app/
 
 # Build wheels
 RUN pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -e .

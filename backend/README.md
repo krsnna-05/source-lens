@@ -98,38 +98,20 @@ alembic upgrade head
 alembic downgrade -1
 ```
 
-## Testing
 
-Run the test suite:
-
-```bash
-pytest
-```
-
-With coverage:
-
-```bash
-pytest --cov=app tests/
-```
-
-Run specific tests:
-
-```bash
-pytest tests/test_auth.py -v
-```
 
 ## Code Quality
 
 ### Format code with Black:
 
 ```bash
-black app/ tests/
+black app/
 ```
 
 ### Lint with Ruff:
 
 ```bash
-ruff check app/ tests/
+ruff check app/
 ```
 
 ### Type checking with mypy:
