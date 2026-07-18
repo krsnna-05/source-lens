@@ -30,11 +30,13 @@ dependencies = [
     "pydantic-settings==2.1.0",
     "alembic==1.13.0",
     "tree-sitter==0.20.4",
-    "sentence-transformers==2.2.2",
+    "torch==2.8.0",
+    "sentence-transformers>=4.0.0",
     "python-dotenv==1.0.0",
     "gitpython==3.1.40",
     "aiofiles==23.2.1",
     "httpx==0.25.2",
+    "gunicorn==21.2.0",
 ]
 
 [project.optional-dependencies]
@@ -88,5 +90,14 @@ no_implicit_optional = true
 warn_redundant_casts = true
 warn_unused_ignores = true
 warn_no_return = true
+
+[[tool.uv.index]]
+name = "pytorch-cpu"
+url = "https://download.pytorch.org/whl/cpu"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cpu" }
+
 
 

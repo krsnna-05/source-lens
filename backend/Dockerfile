@@ -1,21 +1,30 @@
 # ============================================
-# DEVELOPMENT STAGE - Fast, Hot Reload
+# BASE STAGE - Python + uv
 # ============================================
-FROM python:3.11-slim AS dev
+FROM python:3.11-slim AS base
 
 WORKDIR /app
 
-# Install only runtime system deps
+# Install uv binary directly (no pip)
+COPY --from=ghcr.io/astral-sh/uv:0.8.15 /uv /uvx /bin/
+
+# Runtime system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
 
-# Copy pyproject.toml and README (needed for setuptools)
-COPY pyproject.toml README.md ./
+ENV UV_LINK_MODE=copy
 
-# Copy app directory
+# ============================================
+# DEVELOPMENT STAGE - Fast, Hot Reload
+# ============================================
+FROM base AS dev
+
+# Copy dependency metadata first for better layer caching
+COPY pyproject.toml uv.lock README.md ./
 COPY app app/
+COPY alembic alembic/
 
-# Install Python deps
-RUN pip install --no-cache-dir -e .
+# Install app + dev dependencies with uv
+RUN uv sync --frozen --extra dev
 
 # Copy remaining files
 COPY . .
@@ -23,55 +32,29 @@ COPY . .
 EXPOSE 8000
 ENV APP_ENV=dev
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["uv", "run", "uvicorn", "app.main:app_instance", "--host", "0.0.0.0", "--port", "8000", "--reload"]
 
 # ============================================
-# BUILDER STAGE - Compile Dependencies
+# BUILDER STAGE - Production dependency sync
 # ============================================
-FROM python:3.11-slim AS builder
+FROM base AS builder
 
-WORKDIR /app
+# Build tools (only needed during dependency builds)
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential && rm -rf /var/lib/apt/lists/*
 
-# Install build deps
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential git && rm -rf /var/lib/apt/lists/*
-
-# Copy pyproject.toml and README (needed for setuptools)
-COPY pyproject.toml README.md ./
-
-# Copy app directory
-COPY app app/
-
-# Build wheels
-RUN pip wheel --no-cache-dir --no-deps --wheel-dir /app/wheels -e .
-
-# ============================================
-# PRODUCTION STAGE - Minimal, Optimized
-# ============================================
-FROM python:3.11-slim AS prod
-
-WORKDIR /app
-
-# Install only runtime deps
-RUN apt-get update && apt-get install -y --no-install-recommends git && rm -rf /var/lib/apt/lists/*
-
-# Copy wheels from builder
-COPY --from=builder /app/wheels /wheels
-
-# Install wheels (no build, fast)
-RUN pip install --no-cache /wheels/* && rm -rf /wheels
-
-# Copy app
 COPY . .
 
-# Install gunicorn
-RUN pip install --no-cache-dir gunicorn
+# Install only runtime dependencies
+RUN uv sync --frozen --no-dev
+
+# ============================================
+# PRODUCTION STAGE - Minimal runtime image
+# ============================================
+FROM base AS prod
+
+COPY --from=builder /app /app
 
 EXPOSE 8000
 ENV APP_ENV=prod
 
-CMD ["gunicorn", "app.main:app", \
-     "--workers", "4", \
-     "--worker-class", "uvicorn.workers.UvicornWorker", \
-     "--bind", "0.0.0.0:8000", \
-     "--access-logfile", "-"]
+CMD ["uv", "run", "gunicorn", "app.main:app_instance", "--workers", "4", "--worker-class", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:8000", "--access-logfile", "-"]

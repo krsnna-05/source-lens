@@ -24,6 +24,7 @@ app/
 ### Prerequisites
 
 - Python 3.11+
+- uv
 - PostgreSQL 14+
 - Git
 
@@ -35,15 +36,15 @@ app/
    cd sourcelens/backend
    ```
 
-2. **Create a virtual environment:**
+2. **Create a virtual environment (uv):**
    ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
+   uv venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
    ```
 
-3. **Install dependencies:**
+3. **Install dependencies (uv):**
    ```bash
-   pip install -e ".[dev]"
+   uv sync --extra dev
    ```
 
 4. **Set up environment variables:**
@@ -59,7 +60,7 @@ app/
 
 6. **Run Alembic migrations:**
    ```bash
-   alembic upgrade head
+   uv run alembic upgrade head
    ```
 
 ### Running the Application
@@ -67,7 +68,7 @@ app/
 Start the development server:
 
 ```bash
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+uv run uvicorn app.main:app_instance --reload --host 0.0.0.0 --port 8000
 ```
 
 The API will be available at `http://localhost:8000`
@@ -83,19 +84,19 @@ API documentation:
 After modifying models, create an automatic migration:
 
 ```bash
-alembic revision --autogenerate -m "Description of changes"
+uv run alembic revision --autogenerate -m "Description of changes"
 ```
 
 Then review and apply:
 
 ```bash
-alembic upgrade head
+uv run alembic upgrade head
 ```
 
 ### Downgrade migrations
 
 ```bash
-alembic downgrade -1
+uv run alembic downgrade -1
 ```
 
 
@@ -105,19 +106,19 @@ alembic downgrade -1
 ### Format code with Black:
 
 ```bash
-black app/
+uv run black app/
 ```
 
 ### Lint with Ruff:
 
 ```bash
-ruff check app/
+uv run ruff check app/
 ```
 
 ### Type checking with mypy:
 
 ```bash
-mypy app/
+uv run mypy app/
 ```
 
 ## Environment Variables
@@ -172,8 +173,8 @@ Logs include:
 When contributing code:
 1. Follow existing code style (Black formatted, Ruff compliant)
 2. Add type hints to all functions
-3. Write tests for new features
-4. Keep functions focused and testable
+3. Keep functions focused and testable
+4. Prefer small, composable modules
 5. Prefer composition over inheritance
 6. Avoid deeply nested conditionals
 
@@ -188,16 +189,16 @@ psql postgresql://user:password@localhost:5432/sourcelens_db
 ### Migration Errors
 ```bash
 # View migration history
-alembic history
+uv run alembic history
 
 # Reset to specific migration
-alembic downgrade <revision>
+uv run alembic downgrade <revision>
 ```
 
 ### Port Already in Use
 ```bash
 # Run on different port
-uvicorn app.main:app --port 8001
+uv run uvicorn app.main:app_instance --port 8001
 ```
 
 ## License
