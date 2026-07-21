@@ -135,19 +135,19 @@ Key variables:
 ## API Endpoints
 
 ### Authentication
-- `POST /api/v1/auth/github/authorize` - GitHub OAuth login
-- `POST /api/v1/auth/github/callback` - OAuth callback handler
-- `POST /api/v1/auth/refresh` - Refresh JWT token
+- `POST /api/auth/github/authorize` - GitHub OAuth login
+- `POST /api/auth/github/callback` - OAuth callback handler
+- `POST /api/auth/refresh` - Refresh JWT token
 
 ### Repositories
-- `GET /api/v1/repositories` - List user repositories
-- `POST /api/v1/repositories` - Import new repository
-- `GET /api/v1/repositories/{repo_id}` - Get repository details
-- `DELETE /api/v1/repositories/{repo_id}` - Remove repository
+- `GET /api/repositories` - List user repositories
+- `POST /api/repositories` - Import new repository
+- `GET /api/repositories/{repo_id}` - Get repository details
+- `DELETE /api/repositories/{repo_id}` - Remove repository
 
 ### Chat
-- `POST /api/v1/chat` - Send message and get response
-- `GET /api/v1/chat/history/{repo_id}` - Get chat history
+- `POST /api/chat` - Send message and get response
+- `GET /api/chat/history/{repo_id}` - Get chat history
 
 ## Logging
 

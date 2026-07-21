@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 import uvicorn
-from fastapi import FastAPI
+from fastapi import FastAPI, Response
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import __version__
@@ -80,8 +80,14 @@ async def root() -> dict[str, str]:
     return {
         "name": "SourceLens API",
         "docs": "/docs",
-        "health": "/api/v1/health/",
+        "health": "/api/health/",
     }
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon() -> Response:
+    """Avoid browser favicon 404 noise."""
+    return Response(status_code=204)
 
 
 # Backward-compatible alias used by existing Docker/README commands
