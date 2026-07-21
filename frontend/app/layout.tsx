@@ -34,9 +34,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable}`}>
-      <body className="h-dvh overflow-hidden">
+      <body>
         <Navbar />
-        <div className="app-scroll-shell">{children}</div>
+        {children}
       </body>
     </html>
   );
