@@ -8,7 +8,7 @@ import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-import app
+from app import __version__
 from app.api import router as api_router
 from app.core.config import settings
 
@@ -44,7 +44,7 @@ def create_app() -> FastAPI:
     """
     app_instance = FastAPI(
         title="SourceLens",
-        version=app.__version__,
+        version=__version__,
         description="AI-powered repository intelligence platform",
         lifespan=lifespan,
     )
@@ -71,12 +71,26 @@ def create_app() -> FastAPI:
 
 
 # Create global application instance
-app_instance = create_app()
+app = create_app()
+
+
+@app.get("/")
+async def root() -> dict[str, str]:
+    """Root endpoint for quick API discovery."""
+    return {
+        "name": "SourceLens API",
+        "docs": "/docs",
+        "health": "/api/v1/health/",
+    }
+
+
+# Backward-compatible alias used by existing Docker/README commands
+app_instance = app
 
 
 if __name__ == "__main__":
     uvicorn.run(
-        "app.main:app_instance",
+        "app.main:app",
         host=settings.API_HOST,
         port=settings.API_PORT,
         reload=settings.API_DEBUG,

@@ -1,7 +1,7 @@
 # ============================================
 # DEVELOPMENT STAGE - Fast, Hot Reload
 # ============================================
-FROM node:18-alpine AS dev
+FROM node:22-alpine AS dev
 
 WORKDIR /app
 
@@ -22,7 +22,7 @@ CMD ["npm", "run", "dev"]
 # ============================================
 # BUILD STAGE - Compile Application
 # ============================================
-FROM node:18-alpine AS builder
+FROM node:22-alpine AS builder
 
 WORKDIR /app
 
