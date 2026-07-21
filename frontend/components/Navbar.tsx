@@ -1,11 +1,22 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { ExternalLink, GitBranch, LogOut, ScanSearch, UserCircle2 } from "lucide-react";
+import { ChevronDown, ExternalLink, LogOut, ScanSearch, User, UserCircle2 } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useAuthStore } from "@/lib/store";
 
 export function Navbar() {
   const { isLoggedIn, user, login, logout } = useAuthStore();
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
 
   const handleGitHubLogin = () => {
     login({
@@ -13,6 +24,7 @@ export function Navbar() {
       avatar: "",
       profileUrl: "https://github.com/johndoe",
     });
+    setIsProfileMenuOpen(true);
   };
 
   return (
@@ -31,53 +43,68 @@ export function Navbar() {
             </span>
           </Link>
 
-          <div className="hidden items-center gap-1 sm:flex">
-            <Link
-              href="/"
-              className="rounded-full px-3 py-2 text-sm text-zinc-700 transition-colors hover:bg-white/70 hover:text-zinc-900"
-            >
-              Home
-            </Link>
-            <a
-              href="/docs"
-              className="rounded-full px-3 py-2 text-sm text-zinc-700 transition-colors hover:bg-white/70 hover:text-zinc-900"
-            >
-              API Docs
-            </a>
-          </div>
-
           {isLoggedIn && user ? (
-            <div className="flex items-center gap-1.5">
-              <a
-                href={user.profileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="group inline-flex items-center gap-2 rounded-full border border-zinc-200/80 bg-white/85 px-3 py-1.5 transition-colors hover:bg-white"
-                title="Open GitHub profile"
-              >
+            <DropdownMenu open={isProfileMenuOpen} onOpenChange={setIsProfileMenuOpen}>
+              <DropdownMenuTrigger className="inline-flex items-center gap-2 rounded-full border border-zinc-200/80 bg-white/85 px-3 py-1.5 transition-colors hover:bg-white focus:outline-none">
                 <UserCircle2 className="h-4 w-4 text-zinc-700" />
                 <span className="font-ui text-sm font-medium text-zinc-900">{user.name}</span>
-                <span className="hidden max-w-[200px] truncate font-file-path text-xs text-zinc-600 md:inline">
-                  {user.profileUrl}
-                </span>
-                <ExternalLink className="h-3.5 w-3.5 text-zinc-500" />
-              </a>
+                <ChevronDown className="h-4 w-4 text-zinc-500" />
+              </DropdownMenuTrigger>
 
-              <button
-                onClick={logout}
-                className="inline-flex items-center gap-1 rounded-full border border-zinc-200/80 bg-white/85 px-3 py-1.5 text-sm text-zinc-700 transition-colors hover:bg-zinc-50 hover:text-zinc-900"
-                title="Logout"
+              <DropdownMenuContent
+                align="end"
+                sideOffset={10}
+                className="w-64 rounded-2xl border border-zinc-200/75 bg-white/95 p-2 text-zinc-900 shadow-[0_16px_40px_rgba(9,9,11,0.18)] backdrop-blur-xl"
               >
-                <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline">Logout</span>
-              </button>
-            </div>
+                <DropdownMenuGroup>
+                  <DropdownMenuLabel className="px-2.5 pb-1 pt-1 text-zinc-500">Account</DropdownMenuLabel>
+
+                  <div className="mb-1 rounded-xl border border-zinc-200 bg-white px-3 py-2.5">
+                    <div className="flex items-center gap-2.5">
+                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100">
+                        <UserCircle2 className="h-5 w-5 text-zinc-600" />
+                      </span>
+                      <div className="min-w-0">
+                        <p className="truncate font-ui text-sm font-medium text-zinc-900">{user.name}</p>
+                        <p className="font-ui text-xs text-zinc-500">GitHub connected</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  <DropdownMenuItem
+                    className="rounded-sm px-3 py-2 font-ui text-zinc-800 hover:bg-zinc-500/10 hover:text-zinc-900"
+                    onClick={() => window.open(user.profileUrl, "_blank", "noopener,noreferrer")}
+                  >
+                    <User className="h-4 w-4 text-zinc-600" />
+                    Profile
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+
+                <DropdownMenuSeparator className="mx-0 my-1 bg-zinc-200" />
+
+                <DropdownMenuGroup>
+                  <DropdownMenuItem
+                    variant="destructive"
+                    className="rounded-sm px-3 py-2 font-ui hover:bg-red-500/10 hover:text-red-500"
+                    onClick={() => {
+                      logout();
+                      setIsProfileMenuOpen(false);
+                    }}
+                  >
+                    <LogOut className="h-4 w-4" />
+                    Logout
+                  </DropdownMenuItem>
+                </DropdownMenuGroup>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <button
               onClick={handleGitHubLogin}
               className="inline-flex items-center gap-2 rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:-translate-y-0.5 hover:bg-black active:translate-y-0"
             >
-              <GitBranch className="h-4 w-4" />
+              <svg aria-hidden="true" viewBox="0 0 24 24" className="h-4 w-4" fill="currentColor">
+                <path d="M12 .5C5.649.5.5 5.649.5 12a11.5 11.5 0 0 0 7.863 10.907c.575.106.787-.25.787-.556 0-.275-.01-1.004-.016-1.971-3.2.695-3.877-1.542-3.877-1.542-.524-1.33-1.28-1.684-1.28-1.684-1.046-.715.08-.7.08-.7 1.157.082 1.765 1.188 1.765 1.188 1.029 1.764 2.699 1.255 3.357.96.104-.745.403-1.255.732-1.543-2.554-.29-5.238-1.277-5.238-5.684 0-1.256.448-2.283 1.182-3.087-.118-.29-.512-1.456.112-3.036 0 0 .965-.309 3.164 1.18a10.97 10.97 0 0 1 5.76 0c2.198-1.489 3.162-1.18 3.162-1.18.625 1.58.232 2.746.114 3.036.736.804 1.18 1.83 1.18 3.087 0 4.418-2.688 5.39-5.25 5.675.414.357.783 1.06.783 2.136 0 1.542-.014 2.786-.014 3.166 0 .309.208.668.794.555A11.502 11.502 0 0 0 23.5 12C23.5 5.649 18.351.5 12 .5Z" />
+              </svg>
               Login with GitHub
             </button>
           )}
