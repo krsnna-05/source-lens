@@ -75,7 +75,11 @@ export default function DashboardPage() {
   const [githubRepos, setGithubRepos] = useState<RepoItem[]>(initialGithubRepos);
 
   const indexedRepos = githubRepos.filter((repo) => repo.indexed);
-  const unindexedRepos = githubRepos.filter((repo) => !repo.indexed);
+
+  const existingRepoNames = useMemo(
+    () => new Set(githubRepos.map((repo) => repo.name)),
+    [githubRepos]
+  );
 
   const handleAddRepo = (name: string) => {
     setGithubRepos((prev) => [
@@ -173,7 +177,7 @@ export default function DashboardPage() {
 
       <AddRepoDialog
         isOpen={isAddRepoOpen}
-        unindexedRepos={unindexedRepos}
+        existingRepoNames={existingRepoNames}
         onClose={() => setIsAddRepoOpen(false)}
         onAddRepo={handleAddRepo}
       />
