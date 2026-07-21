@@ -13,6 +13,7 @@ import {
   Sparkles,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { API_BASE_URL } from "@/lib/config";
 import { useAuthStore } from "@/lib/store";
 
 const creator = {
@@ -49,16 +50,11 @@ const howItWorksSteps = [
 ];
 
 export default function Home() {
-  const { isLoggedIn, user, login } = useAuthStore();
+  const { isLoggedIn, user } = useAuthStore();
   const router = useRouter();
 
   const handleLogin = () => {
-    login({
-      name: "John Doe",
-      avatar: "",
-      profileUrl: "https://github.com/johndoe",
-    });
-    router.push("/dashboard");
+    window.location.href = `${API_BASE_URL}/api/auth/github/login`;
   };
 
   return (

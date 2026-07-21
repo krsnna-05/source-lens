@@ -37,6 +37,8 @@ dependencies = [
     "aiofiles==23.2.1",
     "httpx==0.25.2",
     "gunicorn==21.2.0",
+    "pyjwt==2.8.0",
+    "email-validator>=2.3.0",
 ]
 
 [project.optional-dependencies]

@@ -49,12 +49,9 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # Configure CORS middleware
-    cors_origins: list[str] = []
-    if settings.ENVIRONMENT == "development":
-        cors_origins = ["*"]
-    else:
-        cors_origins = ["https://example.com"]
+    # Configure CORS middleware. Credentialed requests (cookies) can't use a
+    # wildcard origin, so this must always be an explicit allow-list.
+    cors_origins = [origin.strip() for origin in settings.CORS_ORIGINS.split(",") if origin.strip()]
 
     app_instance.add_middleware(
         CORSMiddleware,

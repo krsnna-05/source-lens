@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { FolderGit2, GitBranch, MessageSquareText, Plus, Search, Sparkles } from "lucide-react";
+import { FolderGit2, GitBranch, MessageSquareText, Plus, Sparkles } from "lucide-react";
 import { AddRepoDialog, type RepoItem } from "@/components/dashboard/AddRepoDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuthStore } from "@/lib/store";
@@ -71,7 +71,6 @@ const conversationsData: Conversation[] = [
 
 export default function DashboardPage() {
   const { isLoggedIn, user } = useAuthStore();
-  const [search, setSearch] = useState("");
   const [isAddRepoOpen, setIsAddRepoOpen] = useState(false);
   const [githubRepos, setGithubRepos] = useState<RepoItem[]>(initialGithubRepos);
 
@@ -98,15 +97,6 @@ export default function DashboardPage() {
     }
     return counts;
   }, []);
-
-  const filteredIndexedRepos = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    if (!term) {
-      return indexedRepos;
-    }
-
-    return indexedRepos.filter((repo) => repo.name.toLowerCase().includes(term));
-  }, [search, indexedRepos]);
 
   return (
     <main className="mx-auto w-full max-w-7xl px-5 pb-16 pt-28 sm:px-8 sm:pt-32 lg:px-10">
@@ -141,21 +131,9 @@ export default function DashboardPage() {
           </button>
         </div>
 
-        <div className="mt-5">
-          <label className="relative block">
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
-            <input
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search repositories..."
-              className="w-full rounded-xl border border-zinc-200 bg-zinc-50/60 py-2.5 pl-10 pr-3 text-sm text-zinc-900 outline-none transition-all placeholder:text-zinc-400 focus:border-indigo-300 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
-            />
-          </label>
-        </div>
-
         <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredIndexedRepos.length > 0 ? (
-            filteredIndexedRepos.map((repo) => (
+          {indexedRepos.length > 0 ? (
+            indexedRepos.map((repo) => (
               <Card
                 key={repo.id}
                 className="group cursor-pointer ring-zinc-200 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:ring-zinc-300"
@@ -187,7 +165,7 @@ export default function DashboardPage() {
           ) : (
             <div className="col-span-full flex flex-col items-center gap-2 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50/60 p-10 text-center">
               <FolderGit2 className="h-6 w-6 text-zinc-400" />
-              <p className="text-sm text-zinc-500">No indexed repositories found for this search.</p>
+              <p className="text-sm text-zinc-500">No indexed repositories yet.</p>
             </div>
           )}
         </div>

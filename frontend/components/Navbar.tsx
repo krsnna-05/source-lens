@@ -13,21 +13,26 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { API_BASE_URL } from "@/lib/config";
 import { useAuthStore } from "@/lib/store";
 
 export function Navbar() {
-  const { isLoggedIn, user, login, logout } = useAuthStore();
+  const { isLoggedIn, user, logout } = useAuthStore();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
   const router = useRouter();
 
   const handleGitHubLogin = () => {
-    login({
-      name: "John Doe",
-      avatar: "",
-      profileUrl: "https://github.com/johndoe",
-    });
     setIsProfileMenuOpen(false);
-    router.push("/dashboard");
+    window.location.href = `${API_BASE_URL}/api/auth/github/login`;
+  };
+
+  const handleLogout = () => {
+    logout();
+    setIsProfileMenuOpen(false);
+    void fetch(`${API_BASE_URL}/api/auth/logout`, {
+      method: "POST",
+      credentials: "include",
+    });
   };
 
   return (
@@ -49,7 +54,12 @@ export function Navbar() {
           {isLoggedIn && user ? (
             <DropdownMenu open={isProfileMenuOpen} onOpenChange={setIsProfileMenuOpen}>
               <DropdownMenuTrigger className="inline-flex items-center gap-2 rounded-full border border-zinc-200/80 bg-white/85 px-3 py-1.5 transition-colors hover:bg-white focus:outline-none">
-                <UserCircle2 className="h-4 w-4 text-zinc-700" />
+                {user.avatar ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={user.avatar} alt={user.name} className="h-5 w-5 rounded-full" />
+                ) : (
+                  <UserCircle2 className="h-4 w-4 text-zinc-700" />
+                )}
                 <span className="font-ui text-sm font-medium text-zinc-900">{user.name}</span>
                 <ChevronDown className="h-4 w-4 text-zinc-500" />
               </DropdownMenuTrigger>
@@ -64,8 +74,13 @@ export function Navbar() {
 
                   <div className="mb-1 rounded-xl border border-zinc-200 bg-white px-3 py-2.5">
                     <div className="flex items-center gap-2.5">
-                      <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-zinc-100">
-                        <UserCircle2 className="h-5 w-5 text-zinc-600" />
+                      <span className="inline-flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-zinc-100">
+                        {user.avatar ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img src={user.avatar} alt={user.name} className="h-8 w-8" />
+                        ) : (
+                          <UserCircle2 className="h-5 w-5 text-zinc-600" />
+                        )}
                       </span>
                       <div className="min-w-0">
                         <p className="truncate font-ui text-sm font-medium text-zinc-900">{user.name}</p>
@@ -92,10 +107,7 @@ export function Navbar() {
                   <DropdownMenuItem
                     variant="destructive"
                     className="rounded-sm px-3 py-2 font-ui hover:bg-red-500/10 hover:text-red-500"
-                    onClick={() => {
-                      logout();
-                      setIsProfileMenuOpen(false);
-                    }}
+                    onClick={handleLogout}
                   >
                     <LogOut className="h-4 w-4" />
                     Logout
