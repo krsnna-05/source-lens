@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ChevronDown, LogOut, ScanSearch, User, UserCircle2 } from "lucide-react";
 import {
   DropdownMenu,
@@ -17,6 +18,7 @@ import { useAuthStore } from "@/lib/store";
 export function Navbar() {
   const { isLoggedIn, user, login, logout } = useAuthStore();
   const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false);
+  const router = useRouter();
 
   const handleGitHubLogin = () => {
     login({
@@ -24,7 +26,8 @@ export function Navbar() {
       avatar: "",
       profileUrl: "https://github.com/johndoe",
     });
-    setIsProfileMenuOpen(true);
+    setIsProfileMenuOpen(false);
+    router.push("/dashboard");
   };
 
   return (
@@ -73,7 +76,10 @@ export function Navbar() {
 
                   <DropdownMenuItem
                     className="rounded-sm px-3 py-2 font-ui text-zinc-800 hover:bg-zinc-500/10 hover:text-zinc-900"
-                    onClick={() => window.open(user.profileUrl, "_blank", "noopener,noreferrer")}
+                    onClick={() => {
+                      setIsProfileMenuOpen(false);
+                      router.push("/dashboard");
+                    }}
                   >
                     <User className="h-4 w-4 text-zinc-600" />
                     Profile

@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   Sparkles,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/lib/store";
 
 const creator = {
@@ -49,6 +50,7 @@ const howItWorksSteps = [
 
 export default function Home() {
   const { isLoggedIn, user, login } = useAuthStore();
+  const router = useRouter();
 
   const handleLogin = () => {
     login({
@@ -56,6 +58,7 @@ export default function Home() {
       avatar: "",
       profileUrl: "https://github.com/johndoe",
     });
+    router.push("/dashboard");
   };
 
   return (
@@ -81,17 +84,16 @@ export default function Home() {
 
           <div className="flex flex-wrap items-center gap-3">
             {isLoggedIn && user ? (
-              <a
-                href={user.profileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
+              <button
+                type="button"
+                onClick={() => router.push("/dashboard")}
                 className="inline-flex items-center gap-2 rounded-full border border-zinc-300 bg-white px-4 py-2 text-sm font-medium text-zinc-900 shadow-sm transition-colors hover:bg-zinc-50"
               >
                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-zinc-900 text-white">
                   <ArrowUpRight className="h-3.5 w-3.5" />
                 </span>
-                Go to Profile
-              </a>
+                Go to Dashboard
+              </button>
             ) : (
               <button
                 type="button"
