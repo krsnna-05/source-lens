@@ -1,106 +1,142 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { FolderGit2, GitBranch, MessageSquareText, Plus, Sparkles } from "lucide-react";
-import { AddRepoDialog, type RepoItem } from "@/components/dashboard/AddRepoDialog";
+import { useEffect, useMemo, useState } from "react";
+import { FolderGit2, GitBranch, Loader2, Plus, Sparkles, Trash2 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { AddRepoDialog, type AddRepoInput } from "@/components/dashboard/AddRepoDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { API_BASE_URL } from "@/lib/config";
 import { useAuthStore } from "@/lib/store";
 
-type Conversation = {
+type RepositoryStatus = "pending" | "indexing" | "ready" | "failed";
+
+type Repository = {
   id: string;
-  repoName: string;
-  title: string;
-  updatedAt: string;
-  messageCount: number;
+  name: string;
+  owner: string;
+  url: string;
+  provider: string;
+  default_branch: string;
+  status: RepositoryStatus;
+  index_mode: string;
+  last_indexed_at: string | null;
+  last_error: string | null;
+  created_at: string;
+  updated_at: string;
 };
 
-const initialGithubRepos: RepoItem[] = [
-  {
-    id: "r1",
-    name: "acme/payment-service",
-    indexed: true,
-    branch: "main",
-    updatedAt: "2h ago",
-  },
-  {
-    id: "r2",
-    name: "acme/auth-service",
-    indexed: true,
-    branch: "main",
-    updatedAt: "5h ago",
-  },
-  {
-    id: "r3",
-    name: "acme/web-portal",
-    indexed: false,
-    branch: "develop",
-    updatedAt: "1d ago",
-  },
-  {
-    id: "r4",
-    name: "acme/internal-tools",
-    indexed: false,
-    branch: "main",
-    updatedAt: "3d ago",
-  },
-];
+type FetchStatus = "loading" | "idle" | "error";
 
-const conversationsData: Conversation[] = [
-  {
-    id: "c1",
-    repoName: "acme/payment-service",
-    title: "How does JWT verification flow work?",
-    updatedAt: "8m ago",
-    messageCount: 14,
-  },
-  {
-    id: "c2",
-    repoName: "acme/auth-service",
-    title: "Where is refresh token rotation implemented?",
-    updatedAt: "34m ago",
-    messageCount: 9,
-  },
-  {
-    id: "c3",
-    repoName: "acme/payment-service",
-    title: "Explain webhook retry strategy",
-    updatedAt: "2h ago",
-    messageCount: 6,
-  },
-];
+const STATUS_STYLES: Record<RepositoryStatus, { label: string; dot: string; text: string; bg: string }> = {
+  pending: { label: "Pending", dot: "bg-amber-500", text: "text-amber-700", bg: "bg-amber-50" },
+  indexing: { label: "Indexing", dot: "bg-blue-500", text: "text-blue-700", bg: "bg-blue-50" },
+  ready: { label: "Indexed", dot: "bg-emerald-500", text: "text-emerald-700", bg: "bg-emerald-50" },
+  failed: { label: "Failed", dot: "bg-red-500", text: "text-red-700", bg: "bg-red-50" },
+};
 
 export default function DashboardPage() {
-  const { isLoggedIn, user } = useAuthStore();
+  const { isLoggedIn, user, accessToken } = useAuthStore();
   const [isAddRepoOpen, setIsAddRepoOpen] = useState(false);
-  const [githubRepos, setGithubRepos] = useState<RepoItem[]>(initialGithubRepos);
+  const [repositories, setRepositories] = useState<Repository[]>([]);
+  const [reposStatus, setReposStatus] = useState<FetchStatus>("loading");
+  const [removingId, setRemovingId] = useState<string | null>(null);
+  const [repoToRemove, setRepoToRemove] = useState<Repository | null>(null);
 
-  const indexedRepos = githubRepos.filter((repo) => repo.indexed);
+  useEffect(() => {
+    if (!accessToken) {
+      return;
+    }
+    let cancelled = false;
+
+    (async () => {
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/repos`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (!response.ok) {
+          throw new Error("Failed to load repositories.");
+        }
+        const data = (await response.json()) as Repository[];
+        if (!cancelled) {
+          setRepositories(data);
+          setReposStatus("idle");
+        }
+      } catch {
+        if (!cancelled) {
+          setReposStatus("error");
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [accessToken]);
 
   const existingRepoNames = useMemo(
-    () => new Set(githubRepos.map((repo) => repo.name)),
-    [githubRepos]
+    () => new Set(repositories.map((repo) => `${repo.owner}/${repo.name}`)),
+    [repositories]
   );
 
-  const handleAddRepo = (name: string) => {
-    setGithubRepos((prev) => [
-      {
-        id: `r${Date.now()}`,
-        name,
-        indexed: false,
-        branch: "main",
-        updatedAt: "just now",
-      },
-      ...prev,
-    ]);
+  const handleAddRepo = async (input: AddRepoInput) => {
+    if (!accessToken) {
+      return;
+    }
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/repos`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
+        },
+        body: JSON.stringify({
+          name: input.name,
+          owner: input.owner,
+          url: input.url,
+          default_branch: input.defaultBranch,
+          provider: "github",
+        }),
+      });
+      if (!response.ok) {
+        return;
+      }
+      const repository = (await response.json()) as Repository;
+      setRepositories((prev) =>
+        prev.some((repo) => repo.id === repository.id) ? prev : [repository, ...prev]
+      );
+    } catch {
+      // TODO: surface a toast once we have a notification system
+    }
   };
 
-  const conversationCountByRepo = useMemo(() => {
-    const counts = new Map<string, number>();
-    for (const conversation of conversationsData) {
-      counts.set(conversation.repoName, (counts.get(conversation.repoName) ?? 0) + 1);
+  const handleConfirmRemoveRepo = async () => {
+    if (!accessToken || !repoToRemove || removingId) {
+      return;
     }
-    return counts;
-  }, []);
+    const repo = repoToRemove;
+    setRemovingId(repo.id);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/repos/${repo.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      if (response.ok) {
+        setRepositories((prev) => prev.filter((item) => item.id !== repo.id));
+      }
+    } finally {
+      setRemovingId(null);
+      setRepoToRemove(null);
+    }
+  };
 
   return (
     <main className="mx-auto w-full max-w-7xl px-5 pb-16 pt-28 sm:px-8 sm:pt-32 lg:px-10">
@@ -121,8 +157,8 @@ export default function DashboardPage() {
       <section className="mt-6 rounded-3xl border border-zinc-200 bg-white p-6 shadow-[0_1px_2px_rgba(24,24,27,0.04),0_12px_32px_-16px_rgba(24,24,27,0.08)] lg:p-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-base font-semibold text-zinc-900">Indexed Repositories</h2>
-            <p className="mt-1 text-sm text-zinc-500">Start a chat with any repository that has been indexed.</p>
+            <h2 className="text-base font-semibold text-zinc-900">Your Repositories</h2>
+            <p className="mt-1 text-sm text-zinc-500">Repositories you&apos;ve added. Indexing is coming soon.</p>
           </div>
 
           <button
@@ -136,40 +172,69 @@ export default function DashboardPage() {
         </div>
 
         <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {indexedRepos.length > 0 ? (
-            indexedRepos.map((repo) => (
-              <Card
-                key={repo.id}
-                className="group cursor-pointer ring-zinc-200 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:ring-zinc-300"
-              >
-                <CardHeader className="flex-row items-start gap-3 space-y-0">
-                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-white transition-colors group-hover:bg-indigo-600">
-                    <FolderGit2 className="h-4.5 w-4.5" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <CardTitle className="truncate font-repository text-sm">{repo.name}</CardTitle>
-                    <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
-                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
-                      Indexed
+          {reposStatus === "loading" ? (
+            <div className="col-span-full flex items-center justify-center gap-2 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50/60 p-10 text-sm text-zinc-500">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading your repositories…
+            </div>
+          ) : reposStatus === "error" ? (
+            <div className="col-span-full flex flex-col items-center gap-2 rounded-2xl border border-dashed border-red-300 bg-red-50/60 p-10 text-center">
+              <p className="text-sm text-red-600">Couldn&apos;t load your repositories.</p>
+            </div>
+          ) : repositories.length > 0 ? (
+            repositories.map((repo) => {
+              const statusStyle = STATUS_STYLES[repo.status];
+              return (
+                <Card
+                  key={repo.id}
+                  className="group relative cursor-pointer ring-zinc-200 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:ring-zinc-300"
+                >
+                  <button
+                    type="button"
+                    disabled={removingId === repo.id}
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      setRepoToRemove(repo);
+                    }}
+                    aria-label={`Remove ${repo.owner}/${repo.name}`}
+                    className="absolute right-3 top-3 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full text-zinc-400 opacity-0 transition-all hover:bg-red-50 hover:text-red-600 focus-visible:opacity-100 group-hover:opacity-100 disabled:opacity-100"
+                  >
+                    {removingId === repo.id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="h-3.5 w-3.5" />
+                    )}
+                  </button>
+
+                  <CardHeader className="flex-row items-start gap-3 space-y-0">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-white transition-colors group-hover:bg-indigo-600">
+                      <FolderGit2 className="h-4.5 w-4.5" />
+                    </div>
+                    <div className="min-w-0 flex-1 pr-6">
+                      <CardTitle className="truncate font-repository text-sm">
+                        {repo.owner}/{repo.name}
+                      </CardTitle>
+                      <span
+                        className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${statusStyle.bg} ${statusStyle.text}`}
+                      >
+                        <span className={`h-1.5 w-1.5 rounded-full ${statusStyle.dot}`} />
+                        {statusStyle.label}
+                      </span>
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex items-center justify-between border-t border-zinc-100 pt-3 text-xs text-zinc-500">
+                    <span className="inline-flex items-center gap-1.5">
+                      <GitBranch className="h-3.5 w-3.5" />
+                      {repo.default_branch}
                     </span>
-                  </div>
-                </CardHeader>
-                <CardContent className="flex items-center justify-between border-t border-zinc-100 pt-3 text-xs text-zinc-500">
-                  <span className="inline-flex items-center gap-1.5">
-                    <GitBranch className="h-3.5 w-3.5" />
-                    {repo.branch}
-                  </span>
-                  <span className="inline-flex items-center gap-1.5">
-                    <MessageSquareText className="h-3.5 w-3.5" />
-                    {conversationCountByRepo.get(repo.name) ?? 0} chats
-                  </span>
-                </CardContent>
-              </Card>
-            ))
+                  </CardContent>
+                </Card>
+              );
+            })
           ) : (
             <div className="col-span-full flex flex-col items-center gap-2 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50/60 p-10 text-center">
               <FolderGit2 className="h-6 w-6 text-zinc-400" />
-              <p className="text-sm text-zinc-500">No indexed repositories yet.</p>
+              <p className="text-sm text-zinc-500">No repositories added yet.</p>
             </div>
           )}
         </div>
@@ -181,6 +246,40 @@ export default function DashboardPage() {
         onClose={() => setIsAddRepoOpen(false)}
         onAddRepo={handleAddRepo}
       />
+
+      <AlertDialog
+        open={repoToRemove !== null}
+        onOpenChange={(open) => {
+          if (!open && !removingId) {
+            setRepoToRemove(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove repository?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {repoToRemove
+                ? `This removes ${repoToRemove.owner}/${repoToRemove.name} from SourceLens. This can’t be undone.`
+                : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={removingId !== null}>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={removingId !== null}
+              onClick={() => void handleConfirmRemoveRepo()}
+            >
+              {removingId ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Trash2 className="h-4 w-4" />
+              )}
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }

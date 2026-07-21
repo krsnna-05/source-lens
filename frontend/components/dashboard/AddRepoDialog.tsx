@@ -5,12 +5,11 @@ import { FolderGit2, Loader2, Plus, Sparkles, X } from "lucide-react";
 import { API_BASE_URL } from "@/lib/config";
 import { useAuthStore } from "@/lib/store";
 
-export type RepoItem = {
-  id: string;
+export type AddRepoInput = {
   name: string;
-  indexed: boolean;
-  branch: string;
-  updatedAt: string;
+  owner: string;
+  url: string;
+  defaultBranch: string;
 };
 
 type GitHubRepo = {
@@ -38,7 +37,7 @@ type AddRepoDialogProps = {
   isOpen: boolean;
   existingRepoNames: Set<string>;
   onClose: () => void;
-  onAddRepo: (name: string) => void;
+  onAddRepo: (input: AddRepoInput) => void;
 };
 
 export function AddRepoDialog({
@@ -102,8 +101,15 @@ export function AddRepoDialog({
     if (!trimmed) {
       return;
     }
-    const name = trimmed.replace(/^https?:\/\/github\.com\//, "").replace(/\.git$/, "");
-    onAddRepo(name);
+    const cleaned = trimmed
+      .replace(/^https?:\/\/github\.com\//, "")
+      .replace(/\.git$/, "")
+      .replace(/\/$/, "");
+    const [owner, name] = cleaned.split("/");
+    if (!owner || !name) {
+      return;
+    }
+    onAddRepo({ owner, name, url: `https://github.com/${owner}/${name}`, defaultBranch: "main" });
     setRepoUrl("");
   };
 
@@ -208,7 +214,14 @@ export function AddRepoDialog({
                       <button
                         type="button"
                         disabled={alreadyAdded}
-                        onClick={() => onAddRepo(repo.full_name)}
+                        onClick={() =>
+                          onAddRepo({
+                            owner: repo.full_name.split("/")[0] ?? repo.full_name,
+                            name: repo.name,
+                            url: repo.html_url,
+                            defaultBranch: repo.default_branch,
+                          })
+                        }
                         className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
                       >
                         <FolderGit2 className="h-4 w-4" />
