@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { ChevronDown, ExternalLink, LogOut, ScanSearch, User, UserCircle2 } from "lucide-react";
+import { ChevronDown, LogOut, ScanSearch, User, UserCircle2 } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
