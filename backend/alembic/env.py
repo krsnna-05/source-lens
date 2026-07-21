@@ -1,11 +1,11 @@
 """Alembic environment for migrations."""
 from logging.config import fileConfig
 from pathlib import Path
-import os
 import sys
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
+from sqlalchemy.engine import make_url
 
 from alembic import context
 
@@ -20,13 +20,17 @@ config = context.config
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
-# Set the sqlalchemy.url from environment variable or config
-database_url = os.getenv("DATABASE_URL")
-if database_url:
-    config.set_main_option("sqlalchemy.url", database_url)
-
 # Add models metadata for auto-generating migrations
+from app.core import settings  # noqa: E402
 from app.models import Base  # noqa: E402
+
+# Set the sqlalchemy.url from shared application settings.
+# Alembic runs migrations through a synchronous engine, so convert the app's
+# asyncpg URL to the sync psycopg2 driver for migration commands.
+database_url = make_url(settings.DATABASE_URL)
+if database_url.drivername == "postgresql+asyncpg":
+    database_url = database_url.set(drivername="postgresql+psycopg2")
+config.set_main_option("sqlalchemy.url", database_url.render_as_string(hide_password=False))
 
 target_metadata = Base.metadata
 

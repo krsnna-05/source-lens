@@ -1,9 +1,12 @@
 """Application configuration using Pydantic v2."""
 
+from pathlib import Path
 from typing import Literal
 
 from pydantic import Field
 from pydantic_settings import BaseSettings
+
+BACKEND_DIR = Path(__file__).resolve().parents[2]
 
 
 class Settings(BaseSettings):
@@ -71,7 +74,7 @@ class Settings(BaseSettings):
     class Config:
         """Pydantic configuration."""
 
-        env_file = ".env"
+        env_file = str(BACKEND_DIR / ".env")
         env_file_encoding = "utf-8"
         case_sensitive = True
 
