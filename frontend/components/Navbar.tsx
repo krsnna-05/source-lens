@@ -54,7 +54,7 @@ export function Navbar() {
               <DropdownMenuContent
                 align="end"
                 sideOffset={10}
-                className="w-64 rounded-2xl border border-zinc-200/75 bg-white/95 p-2 text-zinc-900 shadow-[0_16px_40px_rgba(9,9,11,0.18)] backdrop-blur-xl"
+                className="w-64 rounded-2xl border border-zinc-300 bg-white/95 p-2 text-zinc-900 shadow-[0_16px_40px_rgba(9,9,11,0.14)] ring-0 backdrop-blur-xl"
               >
                 <DropdownMenuGroup>
                   <DropdownMenuLabel className="px-2.5 pb-1 pt-1 text-zinc-500">Account</DropdownMenuLabel>
