@@ -1,7 +1,12 @@
+import { ScanSearch } from "lucide-react";
+
 export default function Home() {
   return (
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col justify-center px-6 py-16">
-      <h1 className="text-4xl font-semibold tracking-tight">SourceLens</h1>
+      <div className="flex items-center gap-3">
+        <ScanSearch className="h-8 w-8" />
+        <h1 className="text-4xl font-semibold tracking-tight">SourceLens</h1>
+      </div>
       <p className="mt-3 text-base text-zinc-600">
         AI-powered repository intelligence platform.
       </p>
