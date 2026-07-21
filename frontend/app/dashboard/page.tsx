@@ -1,8 +1,9 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { MessageCircle, MessageSquareText, Plus, Search } from "lucide-react";
-import { NewChatDialog, type RepoItem } from "@/components/dashboard/NewChatDialog";
+import { FolderGit2, GitBranch, MessageSquareText, Plus, Search, Sparkles } from "lucide-react";
+import { AddRepoDialog, type RepoItem } from "@/components/dashboard/AddRepoDialog";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuthStore } from "@/lib/store";
 
 type Conversation = {
@@ -13,7 +14,7 @@ type Conversation = {
   messageCount: number;
 };
 
-const githubRepos: RepoItem[] = [
+const initialGithubRepos: RepoItem[] = [
   {
     id: "r1",
     name: "acme/payment-service",
@@ -71,116 +72,132 @@ const conversationsData: Conversation[] = [
 export default function DashboardPage() {
   const { isLoggedIn, user } = useAuthStore();
   const [search, setSearch] = useState("");
-  const [isNewChatOpen, setIsNewChatOpen] = useState(false);
+  const [isAddRepoOpen, setIsAddRepoOpen] = useState(false);
+  const [githubRepos, setGithubRepos] = useState<RepoItem[]>(initialGithubRepos);
 
   const indexedRepos = githubRepos.filter((repo) => repo.indexed);
   const unindexedRepos = githubRepos.filter((repo) => !repo.indexed);
 
-  const filteredConversations = useMemo(() => {
+  const handleAddRepo = (name: string) => {
+    setGithubRepos((prev) => [
+      {
+        id: `r${Date.now()}`,
+        name,
+        indexed: false,
+        branch: "main",
+        updatedAt: "just now",
+      },
+      ...prev,
+    ]);
+  };
+
+  const conversationCountByRepo = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const conversation of conversationsData) {
+      counts.set(conversation.repoName, (counts.get(conversation.repoName) ?? 0) + 1);
+    }
+    return counts;
+  }, []);
+
+  const filteredIndexedRepos = useMemo(() => {
     const term = search.trim().toLowerCase();
     if (!term) {
-      return conversationsData;
+      return indexedRepos;
     }
 
-    return conversationsData.filter(
-      (item) => item.title.toLowerCase().includes(term) || item.repoName.toLowerCase().includes(term)
-    );
-  }, [search]);
-
-  const conversationCount = conversationsData.length;
-  const chatsCount = conversationsData.reduce((acc, item) => acc + item.messageCount, 0);
+    return indexedRepos.filter((repo) => repo.name.toLowerCase().includes(term));
+  }, [search, indexedRepos]);
 
   return (
     <main className="mx-auto w-full max-w-7xl px-5 pb-16 pt-28 sm:px-8 sm:pt-32 lg:px-10">
-      <section className="rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm lg:p-8">
-        <p className="text-sm text-zinc-500">Dashboard</p>
-        <h1 className="mt-2 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
+      <section className="relative overflow-hidden rounded-3xl border border-zinc-200 bg-white p-6 shadow-[0_1px_2px_rgba(24,24,27,0.04),0_12px_32px_-16px_rgba(24,24,27,0.08)] lg:p-8">
+        <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-gradient-to-br from-indigo-500/10 to-violet-500/0 blur-2xl" />
+        <div className="relative inline-flex items-center gap-1.5 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 text-xs font-medium text-indigo-700">
+          <Sparkles className="h-3.5 w-3.5" />
+          Dashboard
+        </div>
+        <h1 className="relative mt-3 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
           Welcome{isLoggedIn && user ? `, ${user.name}` : ""}
         </h1>
-        <p className="mt-3 max-w-3xl text-sm text-zinc-600 sm:text-base">
+        <p className="relative mt-3 max-w-3xl text-sm leading-relaxed text-zinc-500 sm:text-base">
           Pick up where you left off, search previous conversations, or start a new chat from indexed repositories.
         </p>
       </section>
 
-      <section className="mt-6 grid gap-4 sm:grid-cols-2">
-        <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2 text-zinc-800">
-            <MessageSquareText className="h-4 w-4" />
-            <h2 className="text-sm font-medium">Conversations</h2>
-          </div>
-          <p className="mt-2 text-2xl font-semibold text-zinc-900">{conversationCount}</p>
-          <p className="text-sm text-zinc-600">Total conversation threads</p>
-        </article>
-
-        <article className="rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2 text-zinc-800">
-            <MessageCircle className="h-4 w-4" />
-            <h2 className="text-sm font-medium">Chats</h2>
-          </div>
-          <p className="mt-2 text-2xl font-semibold text-zinc-900">{chatsCount}</p>
-          <p className="text-sm text-zinc-600">Total chat messages</p>
-        </article>
-      </section>
-
-      <section className="mt-6 rounded-3xl border border-zinc-200 bg-white p-6 shadow-sm lg:p-8">
+      <section className="mt-6 rounded-3xl border border-zinc-200 bg-white p-6 shadow-[0_1px_2px_rgba(24,24,27,0.04),0_12px_32px_-16px_rgba(24,24,27,0.08)] lg:p-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-base font-semibold text-zinc-900">Conversations</h2>
-            <p className="mt-1 text-sm text-zinc-600">
-              Title is generated from the first question, similar to ChatGPT.
-            </p>
+            <h2 className="text-base font-semibold text-zinc-900">Indexed Repositories</h2>
+            <p className="mt-1 text-sm text-zinc-500">Start a chat with any repository that has been indexed.</p>
           </div>
 
           <button
             type="button"
-            onClick={() => setIsNewChatOpen(true)}
-            className="inline-flex items-center gap-2 rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-black"
+            onClick={() => setIsAddRepoOpen(true)}
+            className="inline-flex items-center gap-2 rounded-full bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition-all hover:bg-black hover:shadow-md active:scale-[0.98]"
           >
             <Plus className="h-4 w-4" />
-            New Chat
+            Add Repo
           </button>
         </div>
 
-        <div className="mt-4">
+        <div className="mt-5">
           <label className="relative block">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-400" />
             <input
               value={search}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Search conversation titles..."
-              className="w-full rounded-xl border border-zinc-200 bg-white py-2.5 pl-9 pr-3 text-sm text-zinc-900 outline-none transition-colors placeholder:text-zinc-400 focus:border-zinc-400"
+              placeholder="Search repositories..."
+              className="w-full rounded-xl border border-zinc-200 bg-zinc-50/60 py-2.5 pl-10 pr-3 text-sm text-zinc-900 outline-none transition-all placeholder:text-zinc-400 focus:border-indigo-300 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
             />
           </label>
         </div>
 
-        <div className="mt-4 grid gap-2">
-          {filteredConversations.length > 0 ? (
-            filteredConversations.map((conversation) => (
-              <button
-                key={conversation.id}
-                type="button"
-                className="group flex w-full items-center justify-between rounded-xl border border-zinc-200 bg-white px-4 py-3 text-left transition-colors hover:bg-zinc-50"
+        <div className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          {filteredIndexedRepos.length > 0 ? (
+            filteredIndexedRepos.map((repo) => (
+              <Card
+                key={repo.id}
+                className="group cursor-pointer ring-zinc-200 transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:ring-zinc-300"
               >
-                <div className="min-w-0">
-                  <p className="truncate font-ui text-sm font-medium text-zinc-900">{conversation.title}</p>
-                  <p className="mt-0.5 truncate font-repository text-xs text-zinc-500">{conversation.repoName}</p>
-                </div>
-                <span className="ml-4 shrink-0 text-xs text-zinc-500">{conversation.updatedAt}</span>
-              </button>
+                <CardHeader className="flex-row items-start gap-3 space-y-0">
+                  <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-zinc-900 text-white transition-colors group-hover:bg-indigo-600">
+                    <FolderGit2 className="h-4.5 w-4.5" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <CardTitle className="truncate font-repository text-sm">{repo.name}</CardTitle>
+                    <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-medium text-emerald-700">
+                      <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                      Indexed
+                    </span>
+                  </div>
+                </CardHeader>
+                <CardContent className="flex items-center justify-between border-t border-zinc-100 pt-3 text-xs text-zinc-500">
+                  <span className="inline-flex items-center gap-1.5">
+                    <GitBranch className="h-3.5 w-3.5" />
+                    {repo.branch}
+                  </span>
+                  <span className="inline-flex items-center gap-1.5">
+                    <MessageSquareText className="h-3.5 w-3.5" />
+                    {conversationCountByRepo.get(repo.name) ?? 0} chats
+                  </span>
+                </CardContent>
+              </Card>
             ))
           ) : (
-            <div className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-6 text-sm text-zinc-600">
-              No conversations found for this search.
+            <div className="col-span-full flex flex-col items-center gap-2 rounded-2xl border border-dashed border-zinc-300 bg-zinc-50/60 p-10 text-center">
+              <FolderGit2 className="h-6 w-6 text-zinc-400" />
+              <p className="text-sm text-zinc-500">No indexed repositories found for this search.</p>
             </div>
           )}
         </div>
       </section>
 
-      <NewChatDialog
-        isOpen={isNewChatOpen}
-        indexedRepos={indexedRepos}
+      <AddRepoDialog
+        isOpen={isAddRepoOpen}
         unindexedRepos={unindexedRepos}
-        onClose={() => setIsNewChatOpen(false)}
+        onClose={() => setIsAddRepoOpen(false)}
+        onAddRepo={handleAddRepo}
       />
     </main>
   );
