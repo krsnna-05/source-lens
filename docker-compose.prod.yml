@@ -38,10 +38,11 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql+asyncpg://sourcelens:${POSTGRES_PASSWORD}@postgres:5432/sourcelens_db
+      PORT: 8000
+      NODE_ENV: production
+      DATABASE_URL: postgresql://sourcelens:${POSTGRES_PASSWORD}@postgres:5432/sourcelens_db
       REDIS_URL: redis://redis:6379/0
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://localhost:11434}
-      ENVIRONMENT: production
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
@@ -60,10 +61,11 @@ services:
     # placeholder until the indexing worker entrypoint exists
     command: ["sleep", "infinity"]
     environment:
-      DATABASE_URL: postgresql+asyncpg://sourcelens:${POSTGRES_PASSWORD}@postgres:5432/sourcelens_db
+      PORT: 8000
+      NODE_ENV: production
+      DATABASE_URL: postgresql://sourcelens:${POSTGRES_PASSWORD}@postgres:5432/sourcelens_db
       REDIS_URL: redis://redis:6379/0
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://localhost:11434}
-      ENVIRONMENT: production
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
       GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}

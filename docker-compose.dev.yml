@@ -40,12 +40,14 @@ services:
     ports:
       - "8000:8000"
     environment:
-      DATABASE_URL: postgresql+asyncpg://sourcelens:sourcelens_dev@postgres:5432/sourcelens_db
+      PORT: 8000
+      NODE_ENV: development
+      DATABASE_URL: postgresql://sourcelens:sourcelens_dev@postgres:5432/sourcelens_db
       REDIS_URL: redis://redis:6379/0
       OLLAMA_BASE_URL: http://host.docker.internal:11434
-      ENVIRONMENT: development
     volumes:
       - ./backend:/app:Z
+      - /app/node_modules
     depends_on:
       postgres:
         condition: service_healthy
@@ -60,12 +62,14 @@ services:
     # placeholder until the indexing worker entrypoint exists
     command: ["sleep", "infinity"]
     environment:
-      DATABASE_URL: postgresql+asyncpg://sourcelens:sourcelens_dev@postgres:5432/sourcelens_db
+      PORT: 8000
+      NODE_ENV: development
+      DATABASE_URL: postgresql://sourcelens:sourcelens_dev@postgres:5432/sourcelens_db
       REDIS_URL: redis://redis:6379/0
       OLLAMA_BASE_URL: http://host.docker.internal:11434
-      ENVIRONMENT: development
     volumes:
       - ./backend:/app:Z
+      - /app/node_modules
     depends_on:
       postgres:
         condition: service_healthy

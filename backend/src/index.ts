@@ -1,7 +1,10 @@
 import express, { Request, Response } from 'express';
+import morgan from 'morgan';
 import config from './config/config';
 
 const app = express();
+
+app.use(morgan(config.nodeEnv === 'production' ? 'combined' : 'dev'));
 
 app.get('/', (_req: Request, res: Response) => {
   res.json({

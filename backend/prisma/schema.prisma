@@ -1,0 +1,97 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           Int          @id @default(autoincrement())
+  githubId     Int          @unique @map("github_id")
+  username     String       @unique
+  email        String       @unique
+  avatarUrl    String?      @map("avatar_url")
+  accessToken  String       @map("access_token")
+  createdAt    DateTime     @default(now()) @map("created_at")
+  updatedAt    DateTime     @updatedAt @map("updated_at")
+  repositories Repository[]
+
+  @@map("users")
+}
+
+enum RepositoryProvider {
+  github
+  gitlab
+  local
+
+  @@map("repository_provider")
+}
+
+enum RepositoryStatus {
+  pending
+  indexing
+  ready
+  failed
+
+  @@map("repository_status")
+}
+
+enum IndexMode {
+  manual
+  auto
+
+  @@map("index_mode")
+}
+
+model Repository {
+  id                 String             @id @default(uuid())
+  userId             Int                @map("user_id")
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  name               String
+  owner              String
+  url                String
+  provider           RepositoryProvider @default(github)
+  defaultBranch      String             @default("main") @map("default_branch")
+
+  localPath          String?            @map("local_path")
+
+  latestRemoteCommit String?            @map("latest_remote_commit")
+  lastIndexedCommit  String?            @map("last_indexed_commit")
+
+  status             RepositoryStatus   @default(pending)
+  indexMode          IndexMode          @default(manual) @map("index_mode")
+
+  lastIndexedAt      DateTime?          @map("last_indexed_at")
+  lastError          String?            @map("last_error")
+
+  createdAt          DateTime           @default(now()) @map("created_at")
+  updatedAt          DateTime           @updatedAt @map("updated_at")
+
+  files              IndexedFile[]
+
+  @@unique([userId, owner, name], name: "uq_repositories_user_owner_name")
+  @@map("repositories")
+}
+
+model IndexedFile {
+  id           String     @id @default(uuid())
+  repositoryId String     @map("repository_id")
+  repository   Repository @relation(fields: [repositoryId], references: [id], onDelete: Cascade)
+
+  path       String
+  blobSha    String   @map("blob_sha")
+  language   String
+  sizeBytes  Int      @map("size_bytes")
+  content    String
+  indexedAt  DateTime @map("indexed_at")
+
+  @@map("indexed_files")
+}
