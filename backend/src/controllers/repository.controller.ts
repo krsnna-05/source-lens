@@ -1,9 +1,13 @@
-import { Request, Response } from 'express';
-import { z } from 'zod';
-import * as githubService from '../services/github.service';
-import * as repositoryService from '../services/repository.service';
-import { GitHubRepoError } from '../utils/github';
-import type { Repository, RepositoryProvider } from '../generated/prisma/client';
+import { Request, Response } from "express";
+import { z } from "zod";
+import * as githubService from "../services/github.service";
+import * as repositoryService from "../services/repository.service";
+import { GitHubRepoError } from "../utils/github";
+import type {
+  Repository,
+  RepositoryProvider,
+} from "../generated/prisma/client";
+import { indexQueue } from "../queue/index.queue";
 
 const listQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
@@ -19,8 +23,8 @@ const createRepoSchema = z.object({
   name: z.string().min(1),
   owner: z.string().min(1),
   url: z.string().min(1),
-  default_branch: z.string().default('main'),
-  provider: z.enum(['github', 'gitlab', 'local']).default('github'),
+  default_branch: z.string().default("main"),
+  provider: z.enum(["github", "gitlab", "local"]).default("github"),
 });
 
 function serializeGithubRepo(repo: {
@@ -60,16 +64,23 @@ function serializeRepository(repo: Repository) {
   };
 }
 
-export async function listGithubRepos(req: Request, res: Response): Promise<void> {
+export async function listGithubRepos(
+  req: Request,
+  res: Response,
+): Promise<void> {
   const parsed = listQuerySchema.safeParse(req.query);
   if (!parsed.success) {
-    res.status(400).json({ detail: 'Invalid query parameters' });
+    res.status(400).json({ detail: "Invalid query parameters" });
     return;
   }
   const { page, per_page: perPage } = parsed.data;
 
   try {
-    const result = await githubService.listUserRepos(req.user!.accessToken, page, perPage);
+    const result = await githubService.listUserRepos(
+      req.user!.accessToken,
+      page,
+      perPage,
+    );
     res.json({
       repos: result.repos.map(serializeGithubRepo),
       has_more: result.hasMore,
@@ -84,18 +95,25 @@ export async function listGithubRepos(req: Request, res: Response): Promise<void
   }
 }
 
-export async function lookupGithubRepo(req: Request, res: Response): Promise<void> {
+export async function lookupGithubRepo(
+  req: Request,
+  res: Response,
+): Promise<void> {
   const parsed = lookupQuerySchema.safeParse(req.query);
   if (!parsed.success) {
-    res.status(400).json({ detail: 'Invalid query parameters' });
+    res.status(400).json({ detail: "Invalid query parameters" });
     return;
   }
   const { owner, name } = parsed.data;
 
   try {
-    const repo = await githubService.lookupRepo(req.user!.accessToken, owner, name);
+    const repo = await githubService.lookupRepo(
+      req.user!.accessToken,
+      owner,
+      name,
+    );
     if (!repo) {
-      res.status(404).json({ detail: 'Repository not found on GitHub' });
+      res.status(404).json({ detail: "Repository not found on GitHub" });
       return;
     }
     res.json(serializeGithubRepo(repo));
@@ -108,13 +126,22 @@ export async function lookupGithubRepo(req: Request, res: Response): Promise<voi
   }
 }
 
-export async function addRepository(req: Request, res: Response): Promise<void> {
+export async function addRepository(
+  req: Request,
+  res: Response,
+): Promise<void> {
   const parsed = createRepoSchema.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ detail: 'Invalid request body' });
+    res.status(400).json({ detail: "Invalid request body" });
     return;
   }
-  const { name, owner, url, default_branch: defaultBranch, provider } = parsed.data;
+  const {
+    name,
+    owner,
+    url,
+    default_branch: defaultBranch,
+    provider,
+  } = parsed.data;
 
   const repository = await repositoryService.getOrCreateRepository({
     userId: req.user!.id,
@@ -125,26 +152,42 @@ export async function addRepository(req: Request, res: Response): Promise<void> 
     provider: provider as RepositoryProvider,
   });
 
+  await indexQueue.add("index-repository", {
+    repositoryId: repository.id,
+    githubUrl: repository.url,
+  });
+
   res.status(201).json(serializeRepository(repository));
 }
 
-export async function listRepositories(req: Request, res: Response): Promise<void> {
-  const repositories = await repositoryService.listUserRepositories(req.user!.id);
+export async function listRepositories(
+  req: Request,
+  res: Response,
+): Promise<void> {
+  const repositories = await repositoryService.listUserRepositories(
+    req.user!.id,
+  );
   res.json(repositories.map(serializeRepository));
 }
 
 const repositoryIdSchema = z.string().uuid();
 
-export async function removeRepository(req: Request, res: Response): Promise<void> {
+export async function removeRepository(
+  req: Request,
+  res: Response,
+): Promise<void> {
   const parsed = repositoryIdSchema.safeParse(req.params.id);
   if (!parsed.success) {
-    res.status(400).json({ detail: 'Invalid repository id' });
+    res.status(400).json({ detail: "Invalid repository id" });
     return;
   }
 
-  const deleted = await repositoryService.deleteRepository(req.user!.id, parsed.data);
+  const deleted = await repositoryService.deleteRepository(
+    req.user!.id,
+    parsed.data,
+  );
   if (!deleted) {
-    res.status(404).json({ detail: 'Repository not found' });
+    res.status(404).json({ detail: "Repository not found" });
     return;
   }
   res.status(204).send();

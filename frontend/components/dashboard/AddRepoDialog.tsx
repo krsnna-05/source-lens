@@ -37,7 +37,7 @@ type AddRepoDialogProps = {
   isOpen: boolean;
   existingRepoNames: Set<string>;
   onClose: () => void;
-  onAddRepo: (input: AddRepoInput) => void;
+  onAddRepo: (input: AddRepoInput) => Promise<void>;
 };
 
 export function AddRepoDialog({
@@ -55,6 +55,9 @@ export function AddRepoDialog({
   const [hasMore, setHasMore] = useState(true);
   const [urlSubmitStatus, setUrlSubmitStatus] = useState<"idle" | "loading" | "error">("idle");
   const [urlErrorMessage, setUrlErrorMessage] = useState("");
+  const [addingId, setAddingId] = useState<number | null>(null);
+  const [addErrorId, setAddErrorId] = useState<number | null>(null);
+  const [addErrorMessage, setAddErrorMessage] = useState("");
 
   const fetchPage = async (pageToFetch: number, replace: boolean) => {
     if (!accessToken) {
@@ -132,7 +135,7 @@ export function AddRepoDialog({
       }
 
       const repo = (await response.json()) as GitHubRepo;
-      onAddRepo({
+      await onAddRepo({
         owner: repo.full_name.split("/")[0] ?? owner,
         name: repo.name,
         url: repo.html_url,
@@ -256,21 +259,37 @@ export function AddRepoDialog({
                           <span>Branch: {repo.default_branch}</span>
                           <span>Updated {new Date(repo.updated_at).toLocaleDateString()}</span>
                         </div>
+                        {addErrorId === repo.id && (
+                          <p className="mt-1 text-xs text-destructive">{addErrorMessage}</p>
+                        )}
                       </div>
                       <button
                         type="button"
-                        disabled={alreadyAdded}
-                        onClick={() =>
-                          onAddRepo({
-                            owner: repo.full_name.split("/")[0] ?? repo.full_name,
-                            name: repo.name,
-                            url: repo.html_url,
-                            defaultBranch: repo.default_branch,
-                          })
-                        }
+                        disabled={alreadyAdded || addingId === repo.id}
+                        onClick={async () => {
+                          setAddingId(repo.id);
+                          setAddErrorId(null);
+                          try {
+                            await onAddRepo({
+                              owner: repo.full_name.split("/")[0] ?? repo.full_name,
+                              name: repo.name,
+                              url: repo.html_url,
+                              defaultBranch: repo.default_branch,
+                            });
+                          } catch (err) {
+                            setAddErrorId(repo.id);
+                            setAddErrorMessage(err instanceof Error ? err.message : "Failed to add repository.");
+                          } finally {
+                            setAddingId(null);
+                          }
+                        }}
                         className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
                       >
-                        <FolderGit2 className="h-4 w-4" />
+                        {addingId === repo.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <FolderGit2 className="h-4 w-4" />
+                        )}
                         {alreadyAdded ? "Added" : "Index Repo"}
                       </button>
                     </div>

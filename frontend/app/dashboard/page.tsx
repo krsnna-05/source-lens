@@ -89,33 +89,30 @@ export default function DashboardPage() {
 
   const handleAddRepo = async (input: AddRepoInput) => {
     if (!accessToken) {
-      return;
+      throw new Error("You must be signed in to add a repository.");
     }
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/repos`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          name: input.name,
-          owner: input.owner,
-          url: input.url,
-          default_branch: input.defaultBranch,
-          provider: "github",
-        }),
-      });
-      if (!response.ok) {
-        return;
-      }
-      const repository = (await response.json()) as Repository;
-      setRepositories((prev) =>
-        prev.some((repo) => repo.id === repository.id) ? prev : [repository, ...prev]
-      );
-    } catch {
-      // TODO: surface a toast once we have a notification system
+    const response = await fetch(`${API_BASE_URL}/api/repos`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify({
+        name: input.name,
+        owner: input.owner,
+        url: input.url,
+        default_branch: input.defaultBranch,
+        provider: "github",
+      }),
+    });
+    if (!response.ok) {
+      const body = (await response.json().catch(() => null)) as { detail?: string } | null;
+      throw new Error(body?.detail ?? "Failed to add repository.");
     }
+    const repository = (await response.json()) as Repository;
+    setRepositories((prev) =>
+      prev.some((repo) => repo.id === repository.id) ? prev : [repository, ...prev]
+    );
   };
 
   const handleConfirmRemoveRepo = async () => {
