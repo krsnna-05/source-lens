@@ -30,7 +30,7 @@ type GitHubRepoPage = {
 
 type FetchStatus = "idle" | "loading" | "loading-more" | "error";
 
-const PER_PAGE = 20;
+const PER_PAGE = 5;
 const SCROLL_THRESHOLD_PX = 120;
 
 type AddRepoDialogProps = {
@@ -53,6 +53,8 @@ export function AddRepoDialog({
   const [errorMessage, setErrorMessage] = useState("");
   const [page, setPage] = useState(1);
   const [hasMore, setHasMore] = useState(true);
+  const [urlSubmitStatus, setUrlSubmitStatus] = useState<"idle" | "loading" | "error">("idle");
+  const [urlErrorMessage, setUrlErrorMessage] = useState("");
 
   const fetchPage = async (pageToFetch: number, replace: boolean) => {
     if (!accessToken) {
@@ -95,10 +97,10 @@ export function AddRepoDialog({
     return null;
   }
 
-  const handleAddRepo = (event: React.FormEvent) => {
+  const handleAddRepo = async (event: React.FormEvent) => {
     event.preventDefault();
     const trimmed = repoUrl.trim();
-    if (!trimmed) {
+    if (!trimmed || !accessToken) {
       return;
     }
     const cleaned = trimmed
@@ -107,10 +109,41 @@ export function AddRepoDialog({
       .replace(/\/$/, "");
     const [owner, name] = cleaned.split("/");
     if (!owner || !name) {
+      setUrlSubmitStatus("error");
+      setUrlErrorMessage("Enter a valid owner/repo or GitHub URL.");
       return;
     }
-    onAddRepo({ owner, name, url: `https://github.com/${owner}/${name}`, defaultBranch: "main" });
-    setRepoUrl("");
+
+    setUrlSubmitStatus("loading");
+    try {
+      const response = await fetch(
+        `${API_BASE_URL}/api/repos/github/lookup?owner=${encodeURIComponent(owner)}&name=${encodeURIComponent(name)}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      );
+
+      if (response.status === 404) {
+        setUrlSubmitStatus("error");
+        setUrlErrorMessage("Repository not found on GitHub.");
+        return;
+      }
+      if (!response.ok) {
+        const body = (await response.json().catch(() => null)) as { detail?: string } | null;
+        throw new Error(body?.detail ?? "Failed to look up the repository.");
+      }
+
+      const repo = (await response.json()) as GitHubRepo;
+      onAddRepo({
+        owner: repo.full_name.split("/")[0] ?? owner,
+        name: repo.name,
+        url: repo.html_url,
+        defaultBranch: repo.default_branch,
+      });
+      setRepoUrl("");
+      setUrlSubmitStatus("idle");
+    } catch (err) {
+      setUrlSubmitStatus("error");
+      setUrlErrorMessage(err instanceof Error ? err.message : "Something went wrong.");
+    }
   };
 
   const handleListScroll = (event: React.UIEvent<HTMLDivElement>) => {
@@ -158,18 +191,31 @@ export function AddRepoDialog({
         <form onSubmit={handleAddRepo} className="mt-5 flex items-center gap-2">
           <input
             value={repoUrl}
-            onChange={(event) => setRepoUrl(event.target.value)}
+            onChange={(event) => {
+              setRepoUrl(event.target.value);
+              if (urlSubmitStatus === "error") {
+                setUrlSubmitStatus("idle");
+              }
+            }}
             placeholder="owner/repo or GitHub URL"
             className="w-full rounded-xl border border-zinc-200 bg-zinc-50/60 px-3.5 py-2.5 text-sm text-zinc-900 outline-none transition-all placeholder:text-zinc-400 focus:border-indigo-300 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
           />
           <button
             type="submit"
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-black hover:shadow-md active:scale-[0.98]"
+            disabled={urlSubmitStatus === "loading"}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-black hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
           >
-            <Plus className="h-4 w-4" />
+            {urlSubmitStatus === "loading" ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Plus className="h-4 w-4" />
+            )}
             Add
           </button>
         </form>
+        {urlSubmitStatus === "error" && (
+          <p className="mt-2 text-xs text-red-600">{urlErrorMessage}</p>
+        )}
 
         <div className="mt-6">
           <h3 className="text-sm font-semibold text-zinc-900">Your Repos</h3>

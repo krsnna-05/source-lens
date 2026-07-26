@@ -5,6 +5,7 @@ from typing import Any, TypedDict
 import httpx
 
 GITHUB_USER_REPOS_URL = "https://api.github.com/user/repos"
+GITHUB_REPO_URL = "https://api.github.com/repos/{owner}/{name}"
 
 
 class GitHubRepoError(Exception):
@@ -84,3 +85,49 @@ async def list_user_repos_page(access_token: str, page: int, per_page: int) -> G
     ]
 
     return GitHubRepoPage(repos=repos, has_more="next" in response.links)
+
+
+async def get_repo(access_token: str, owner: str, name: str) -> GitHubRepo | None:
+    """Fetch a single repository by owner/name, to validate a URL-based add.
+
+    Args:
+        access_token: The user's stored GitHub access token.
+        owner: Repository owner or organization login.
+        name: Repository name.
+
+    Returns:
+        GitHubRepo | None: The repository if it exists and is accessible to
+            the user, otherwise None.
+
+    Raises:
+        GitHubRepoError: If GitHub is unreachable or rejects the request
+            for a reason other than the repository not existing.
+    """
+    headers = {
+        "Authorization": f"Bearer {access_token}",
+        "Accept": "application/vnd.github+json",
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            response = await client.get(
+                GITHUB_REPO_URL.format(owner=owner, name=name), headers=headers
+            )
+    except httpx.HTTPError as exc:
+        raise GitHubRepoError("Could not reach GitHub to look up the repository") from exc
+
+    if response.status_code == 404:
+        return None
+    if response.status_code != 200:
+        raise GitHubRepoError("Failed to fetch the repository from GitHub")
+
+    item: dict[str, Any] = response.json()
+    return GitHubRepo(
+        id=item["id"],
+        name=item["name"],
+        full_name=item["full_name"],
+        private=item["private"],
+        default_branch=item["default_branch"],
+        updated_at=item["updated_at"],
+        html_url=item["html_url"],
+    )

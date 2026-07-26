@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.auth.dependencies import get_current_user
 from app.database import get_db_session
 from app.models.user import User
-from app.repository.github import GitHubRepoError, list_user_repos_page
+from app.repository.github import GitHubRepoError, get_repo, list_user_repos_page
 from app.schemas.repository import (
     GitHubRepoPageRead,
     GitHubRepoRead,
@@ -54,6 +54,37 @@ async def list_github_repos(
         has_more=result["has_more"],
         next_page=page + 1 if result["has_more"] else None,
     )
+
+
+@router.get("/github/lookup", response_model=GitHubRepoRead)
+async def lookup_github_repo(
+    owner: str = Query(..., min_length=1),
+    name: str = Query(..., min_length=1),
+    user: User = Depends(get_current_user),
+) -> GitHubRepoRead:
+    """Look up a single GitHub repository by owner/name, to validate a URL-based add.
+
+    Args:
+        owner: Repository owner or organization login.
+        name: Repository name.
+        user: The authenticated user, resolved from the bearer token.
+
+    Returns:
+        GitHubRepoRead: The repository, if it exists and is accessible to the user.
+
+    Raises:
+        HTTPException: 404 if the repository doesn't exist or isn't accessible
+            to the user; 502 if GitHub can't be reached or rejects the request.
+    """
+    try:
+        repo = await get_repo(user.access_token, owner=owner, name=name)
+    except GitHubRepoError as exc:
+        raise HTTPException(status_code=502, detail=str(exc)) from exc
+
+    if repo is None:
+        raise HTTPException(status_code=404, detail="Repository not found on GitHub")
+
+    return GitHubRepoRead(**repo)
 
 
 @router.post("", response_model=RepositoryRead, status_code=201)
