@@ -3,7 +3,7 @@ import { Request, Response } from 'express';
 import { z } from 'zod';
 import * as authService from '../services/auth.service';
 import { InvalidTokenError, createAccessToken, decodeToken } from '../utils/jwt';
-import * as userRepository from '../repositories/user.repository';
+import * as userService from '../services/user.service';
 import {
   OAUTH_STATE_COOKIE,
   REFRESH_TOKEN_COOKIE,
@@ -96,7 +96,7 @@ export async function refresh(req: Request, res: Response): Promise<void> {
     return;
   }
 
-  const user = await userRepository.findById(Number(payload.sub));
+  const user = await userService.findById(Number(payload.sub));
   if (!user) {
     clearRefreshCookie(res);
     res.status(401).json({ detail: 'Account no longer exists' });

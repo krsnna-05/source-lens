@@ -1,4 +1,4 @@
-import * as repoRepository from '../repositories/repository.repository';
+import prisma from '../database/prisma';
 import type { Repository, RepositoryProvider } from '../generated/prisma/client';
 
 export async function getOrCreateRepository(params: {
@@ -9,16 +9,22 @@ export async function getOrCreateRepository(params: {
   defaultBranch: string;
   provider: RepositoryProvider;
 }): Promise<Repository> {
-  const existing = await repoRepository.findByUserOwnerName(params.userId, params.owner, params.name);
+  const existing = await prisma.repository.findFirst({
+    where: { userId: params.userId, owner: params.owner, name: params.name },
+  });
   if (existing) return existing;
 
-  return repoRepository.create(params);
+  return prisma.repository.create({ data: params });
 }
 
 export function listUserRepositories(userId: number): Promise<Repository[]> {
-  return repoRepository.listByUser(userId);
+  return prisma.repository.findMany({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
+  });
 }
 
-export function deleteRepository(userId: number, repositoryId: string): Promise<boolean> {
-  return repoRepository.deleteByUserAndId(userId, repositoryId);
+export async function deleteRepository(userId: number, repositoryId: string): Promise<boolean> {
+  const result = await prisma.repository.deleteMany({ where: { id: repositoryId, userId } });
+  return result.count > 0;
 }
