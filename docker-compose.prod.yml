@@ -18,6 +18,18 @@ services:
       retries: 5
     restart: unless-stopped
 
+  redis:
+    image: redis:7-alpine
+    container_name: sourcelens_redis_prod
+    volumes:
+      - redis_data_prod:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
   backend:
     build:
       context: ./backend
@@ -27,6 +39,7 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql+asyncpg://sourcelens:${POSTGRES_PASSWORD}@postgres:5432/sourcelens_db
+      REDIS_URL: redis://redis:6379/0
       OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://localhost:11434}
       ENVIRONMENT: production
       JWT_SECRET_KEY: ${JWT_SECRET_KEY}
@@ -34,6 +47,30 @@ services:
       GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
     depends_on:
       postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ./backend
+      target: prod
+    container_name: sourcelens_worker_prod
+    # placeholder until the indexing worker entrypoint exists
+    command: ["sleep", "infinity"]
+    environment:
+      DATABASE_URL: postgresql+asyncpg://sourcelens:${POSTGRES_PASSWORD}@postgres:5432/sourcelens_db
+      REDIS_URL: redis://redis:6379/0
+      OLLAMA_BASE_URL: ${OLLAMA_BASE_URL:-http://localhost:11434}
+      ENVIRONMENT: production
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      GITHUB_CLIENT_ID: ${GITHUB_CLIENT_ID}
+      GITHUB_CLIENT_SECRET: ${GITHUB_CLIENT_SECRET}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
         condition: service_healthy
     restart: unless-stopped
 
@@ -52,4 +89,6 @@ services:
 
 volumes:
   postgres_data_prod:
+    driver: local
+  redis_data_prod:
     driver: local
