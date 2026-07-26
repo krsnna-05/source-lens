@@ -159,28 +159,28 @@ export function AddRepoDialog({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-zinc-950/35 p-4 backdrop-blur-[2px]"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/60 p-4 backdrop-blur-[2px]"
       onClick={onClose}
     >
       <section
-        className="w-full max-w-2xl rounded-3xl border border-zinc-200 bg-white p-6 shadow-2xl lg:p-8"
+        className="w-full max-w-2xl rounded-3xl border border-border bg-card p-6 shadow-2xl lg:p-8"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-start justify-between gap-3">
           <div>
-            <h2 className="text-base font-semibold text-zinc-900">Add Repository</h2>
-            <p className="mt-1 text-sm text-zinc-600">Import a repository from GitHub, then index it.</p>
+            <h2 className="text-base font-semibold text-foreground">Add Repository</h2>
+            <p className="mt-1 text-sm text-muted-foreground">Import a repository from GitHub, then index it.</p>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="inline-flex items-center gap-1 rounded-full border border-zinc-200 bg-zinc-50 px-3 py-1 text-xs text-zinc-600">
+            <span className="inline-flex items-center gap-1 rounded-full border border-border bg-muted px-3 py-1 text-xs text-muted-foreground">
               <Sparkles className="h-3.5 w-3.5" />
               GitHub repositories
             </span>
             <button
               type="button"
               onClick={onClose}
-              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-zinc-200 text-zinc-600 transition-colors hover:bg-zinc-50"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-full border border-border text-muted-foreground transition-colors hover:bg-accent"
               aria-label="Close add repository dialog"
             >
               <X className="h-4 w-4" />
@@ -198,12 +198,12 @@ export function AddRepoDialog({
               }
             }}
             placeholder="owner/repo or GitHub URL"
-            className="w-full rounded-xl border border-zinc-200 bg-zinc-50/60 px-3.5 py-2.5 text-sm text-zinc-900 outline-none transition-all placeholder:text-zinc-400 focus:border-indigo-300 focus:bg-white focus:ring-4 focus:ring-indigo-500/10"
+            className="w-full rounded-xl border border-border bg-muted/60 px-3.5 py-2.5 text-sm text-foreground outline-none transition-all placeholder:text-muted-foreground focus:border-ring focus:bg-card focus:ring-4 focus:ring-ring/10"
           />
           <button
             type="submit"
             disabled={urlSubmitStatus === "loading"}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-zinc-900 px-4 py-2.5 text-sm font-medium text-white shadow-sm transition-all hover:bg-black hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-primary px-4 py-2.5 text-sm font-medium text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
           >
             {urlSubmitStatus === "loading" ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -214,22 +214,22 @@ export function AddRepoDialog({
           </button>
         </form>
         {urlSubmitStatus === "error" && (
-          <p className="mt-2 text-xs text-red-600">{urlErrorMessage}</p>
+          <p className="mt-2 text-xs text-destructive">{urlErrorMessage}</p>
         )}
 
         <div className="mt-6">
-          <h3 className="text-sm font-semibold text-zinc-900">Your Repos</h3>
+          <h3 className="text-sm font-semibold text-foreground">Your Repos</h3>
           <div
             onScroll={handleListScroll}
             className="mt-3 max-h-96 space-y-2 overflow-y-auto pr-1"
           >
             {status === "loading" ? (
-              <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-zinc-300 bg-zinc-50/60 p-6 text-sm text-zinc-500">
+              <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-border bg-muted/60 p-6 text-sm text-muted-foreground">
                 <Loader2 className="h-4 w-4 animate-spin" />
                 Loading your GitHub repositories…
               </div>
             ) : status === "error" && repos.length === 0 ? (
-              <div className="rounded-xl border border-dashed border-red-300 bg-red-50/60 p-6 text-center text-sm text-red-600">
+              <div className="rounded-xl border border-dashed border-destructive/30 bg-destructive/10 p-6 text-center text-sm text-destructive">
                 {errorMessage}
               </div>
             ) : repos.length > 0 ? (
@@ -239,20 +239,20 @@ export function AddRepoDialog({
                   return (
                     <div
                       key={repo.id}
-                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white p-3.5 transition-colors hover:border-zinc-300"
+                      className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-border bg-card p-3.5 transition-colors hover:border-foreground/20"
                     >
                       <div className="min-w-0">
                         <div className="flex flex-wrap items-center gap-2">
-                          <p className="truncate font-repository text-sm text-zinc-800">
+                          <p className="truncate font-repository text-sm text-foreground">
                             {repo.full_name}
                           </p>
                           {repo.private && (
-                            <span className="rounded-full bg-zinc-100 px-2 py-0.5 text-[11px] font-medium text-zinc-500">
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
                               Private
                             </span>
                           )}
                         </div>
-                        <div className="mt-1 flex items-center gap-3 text-xs text-zinc-500">
+                        <div className="mt-1 flex items-center gap-3 text-xs text-muted-foreground">
                           <span>Branch: {repo.default_branch}</span>
                           <span>Updated {new Date(repo.updated_at).toLocaleDateString()}</span>
                         </div>
@@ -268,7 +268,7 @@ export function AddRepoDialog({
                             defaultBranch: repo.default_branch,
                           })
                         }
-                        className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-zinc-900 px-3 py-1.5 text-sm font-medium text-white transition-colors hover:bg-black disabled:cursor-not-allowed disabled:bg-zinc-100 disabled:text-zinc-400"
+                        className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-primary px-3 py-1.5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground"
                       >
                         <FolderGit2 className="h-4 w-4" />
                         {alreadyAdded ? "Added" : "Index Repo"}
@@ -278,20 +278,20 @@ export function AddRepoDialog({
                 })}
 
                 {status === "loading-more" && (
-                  <div className="flex items-center justify-center gap-2 py-3 text-xs text-zinc-500">
+                  <div className="flex items-center justify-center gap-2 py-3 text-xs text-muted-foreground">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
                     Loading more…
                   </div>
                 )}
 
                 {status === "error" && (
-                  <div className="rounded-xl border border-dashed border-red-300 bg-red-50/60 p-4 text-center text-xs text-red-600">
+                  <div className="rounded-xl border border-dashed border-destructive/30 bg-destructive/10 p-4 text-center text-xs text-destructive">
                     {errorMessage}
                   </div>
                 )}
               </>
             ) : (
-              <div className="rounded-xl border border-dashed border-zinc-300 bg-zinc-50/60 p-6 text-center text-sm text-zinc-500">
+              <div className="rounded-xl border border-dashed border-border bg-muted/60 p-6 text-center text-sm text-muted-foreground">
                 No repositories found on your GitHub account.
               </div>
             )}

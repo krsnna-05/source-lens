@@ -22,7 +22,7 @@ function AlertDialogBackdrop({ className, ...props }: AlertDialogPrimitive.Backd
     <AlertDialogPrimitive.Backdrop
       data-slot="alert-dialog-backdrop"
       className={cn(
-        "fixed inset-0 z-50 bg-zinc-950/40 backdrop-blur-[2px] duration-150 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
+        "fixed inset-0 z-50 bg-background/60 backdrop-blur-[2px] duration-150 data-open:animate-in data-open:fade-in-0 data-closed:animate-out data-closed:fade-out-0",
         className
       )}
       {...props}
@@ -38,7 +38,7 @@ function AlertDialogContent({ className, children, ...props }: AlertDialogPrimit
         <AlertDialogPrimitive.Popup
           data-slot="alert-dialog-content"
           className={cn(
-            "w-full max-w-sm rounded-3xl border border-zinc-200 bg-white p-6 shadow-2xl outline-none duration-150 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+            "w-full max-w-sm rounded-3xl border border-border bg-card p-6 shadow-2xl outline-none duration-150 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
             className
           )}
           {...props}
@@ -74,7 +74,7 @@ function AlertDialogTitle({ className, ...props }: AlertDialogPrimitive.Title.Pr
   return (
     <AlertDialogPrimitive.Title
       data-slot="alert-dialog-title"
-      className={cn("text-base font-semibold text-zinc-900", className)}
+      className={cn("text-base font-semibold text-foreground", className)}
       {...props}
     />
   )
@@ -84,7 +84,7 @@ function AlertDialogDescription({ className, ...props }: AlertDialogPrimitive.De
   return (
     <AlertDialogPrimitive.Description
       data-slot="alert-dialog-description"
-      className={cn("text-sm leading-relaxed text-zinc-500", className)}
+      className={cn("text-sm leading-relaxed text-muted-foreground", className)}
       {...props}
     />
   )
@@ -95,7 +95,7 @@ function AlertDialogAction({ className, ...props }: AlertDialogPrimitive.Close.P
     <AlertDialogPrimitive.Close
       data-slot="alert-dialog-action"
       className={cn(
-        "inline-flex items-center gap-2 rounded-full bg-red-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-red-700 disabled:pointer-events-none disabled:opacity-50",
+        "inline-flex items-center gap-2 rounded-full bg-destructive px-4 py-2 text-sm font-medium text-white shadow-sm transition-colors hover:bg-destructive/90 disabled:pointer-events-none disabled:opacity-50",
         className
       )}
       {...props}
@@ -108,7 +108,7 @@ function AlertDialogCancel({ className, ...props }: AlertDialogPrimitive.Close.P
     <AlertDialogPrimitive.Close
       data-slot="alert-dialog-cancel"
       className={cn(
-        "inline-flex items-center gap-2 rounded-full border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 transition-colors hover:bg-zinc-50",
+        "inline-flex items-center gap-2 rounded-full border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent",
         className
       )}
       {...props}
