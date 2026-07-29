@@ -14,10 +14,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { AddRepoDialog, type AddRepoInput } from "@/components/dashboard/AddRepoDialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
 import { API_BASE_URL } from "@/lib/config";
 import { useAuthStore } from "@/lib/store";
 
-type RepositoryStatus = "pending" | "indexing" | "ready" | "failed";
+type RepositoryStatus = "pending" | "cloning" | "scanning" | "parsing" | "chunking" | "embedding" | "storing" | "ready" | "failed";
 
 type Repository = {
   id: string;
@@ -27,6 +28,7 @@ type Repository = {
   provider: string;
   default_branch: string;
   status: RepositoryStatus;
+  progress: number;
   index_mode: string;
   last_indexed_at: string | null;
   last_error: string | null;
@@ -36,11 +38,16 @@ type Repository = {
 
 type FetchStatus = "loading" | "idle" | "error";
 
-const STATUS_STYLES: Record<RepositoryStatus, { label: string; dot: string; text: string; bg: string }> = {
-  pending: { label: "Pending", dot: "bg-amber-500", text: "text-amber-600 dark:text-amber-400", bg: "bg-amber-500/10" },
-  indexing: { label: "Indexing", dot: "bg-blue-500", text: "text-blue-600 dark:text-blue-400", bg: "bg-blue-500/10" },
-  ready: { label: "Indexed", dot: "bg-emerald-500", text: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500/10" },
-  failed: { label: "Failed", dot: "bg-destructive", text: "text-destructive", bg: "bg-destructive/10" },
+const STATUS_STYLES: Record<RepositoryStatus, { label: string; sublabel: string; dot: string; text: string; bg: string }> = {
+  pending: { label: "Pending", sublabel: "Waiting to index", dot: "bg-amber-500", text: "text-amber-600 dark:text-amber-400", bg: "bg-amber-500/10" },
+  cloning: { label: "Cloning", sublabel: "Downloading repository", dot: "bg-blue-500", text: "text-blue-600 dark:text-blue-400", bg: "bg-blue-500/10" },
+  scanning: { label: "Scanning", sublabel: "Finding source files", dot: "bg-blue-500", text: "text-blue-600 dark:text-blue-400", bg: "bg-blue-500/10" },
+  parsing: { label: "Parsing", sublabel: "Analyzing code", dot: "bg-blue-500", text: "text-blue-600 dark:text-blue-400", bg: "bg-blue-500/10" },
+  chunking: { label: "Chunking", sublabel: "Breaking down files", dot: "bg-blue-500", text: "text-blue-600 dark:text-blue-400", bg: "bg-blue-500/10" },
+  embedding: { label: "Embedding", sublabel: "Generating vectors", dot: "bg-blue-500", text: "text-blue-600 dark:text-blue-400", bg: "bg-blue-500/10" },
+  storing: { label: "Storing", sublabel: "Saving data", dot: "bg-blue-500", text: "text-blue-600 dark:text-blue-400", bg: "bg-blue-500/10" },
+  ready: { label: "Indexed", sublabel: "Ready to chat", dot: "bg-emerald-500", text: "text-emerald-600 dark:text-emerald-400", bg: "bg-emerald-500/10" },
+  failed: { label: "Failed", sublabel: "Indexing error", dot: "bg-destructive", text: "text-destructive", bg: "bg-destructive/10" },
 };
 
 export default function DashboardPage() {
@@ -82,9 +89,45 @@ export default function DashboardPage() {
     };
   }, [accessToken]);
 
+  // Poll for progress updates
+  useEffect(() => {
+    if (!accessToken || repositories.length === 0) {
+      return;
+    }
+
+    const indexingRepos = repositories.filter((r) => r.status !== "ready" && r.status !== "failed" && r.status !== "pending");
+    if (indexingRepos.length === 0) {
+      return;
+    }
+
+    let cancelled = false;
+    const interval = setInterval(async () => {
+      if (cancelled) return;
+
+      try {
+        const response = await fetch(`${API_BASE_URL}/api/repos`, {
+          headers: { Authorization: `Bearer ${accessToken}` },
+        });
+        if (response.ok) {
+          const data = (await response.json()) as Repository[];
+          if (!cancelled) {
+            setRepositories(data);
+          }
+        }
+      } catch {
+        // Silently ignore polling errors
+      }
+    }, 1000); // Poll every second
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [accessToken, repositories.length]);
+
   const existingRepoNames = useMemo(
     () => new Set(repositories.map((repo) => `${repo.owner}/${repo.name}`)),
-    [repositories]
+    [repositories],
   );
 
   const handleAddRepo = async (input: AddRepoInput) => {
@@ -110,9 +153,7 @@ export default function DashboardPage() {
       throw new Error(body?.detail ?? "Failed to add repository.");
     }
     const repository = (await response.json()) as Repository;
-    setRepositories((prev) =>
-      prev.some((repo) => repo.id === repository.id) ? prev : [repository, ...prev]
-    );
+    setRepositories((prev) => (prev.some((repo) => repo.id === repository.id) ? prev : [repository, ...prev]));
   };
 
   const handleConfirmRemoveRepo = async () => {
@@ -155,7 +196,7 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h2 className="text-base font-semibold text-foreground">Your Repositories</h2>
-            <p className="mt-1 text-sm text-muted-foreground">Repositories you&apos;ve added. Indexing is coming soon.</p>
+            <p className="mt-1 text-sm text-muted-foreground">Repositories you&apos;ve added. Real-time indexing progress below.</p>
           </div>
 
           <button
@@ -181,11 +222,9 @@ export default function DashboardPage() {
           ) : repositories.length > 0 ? (
             repositories.map((repo) => {
               const statusStyle = STATUS_STYLES[repo.status];
+              const isIndexing = repo.status !== "ready" && repo.status !== "failed" && repo.status !== "pending";
               return (
-                <Card
-                  key={repo.id}
-                  className="group relative cursor-pointer ring-border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:ring-foreground/20"
-                >
+                <Card key={repo.id} className="group relative cursor-pointer ring-border transition-all duration-200 hover:-translate-y-0.5 hover:shadow-lg hover:ring-foreground/20">
                   <button
                     type="button"
                     disabled={removingId === repo.id}
@@ -196,11 +235,7 @@ export default function DashboardPage() {
                     aria-label={`Remove ${repo.owner}/${repo.name}`}
                     className="absolute right-3 top-3 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full text-muted-foreground opacity-0 transition-all hover:bg-destructive/10 hover:text-destructive focus-visible:opacity-100 group-hover:opacity-100 disabled:opacity-100"
                   >
-                    {removingId === repo.id ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <Trash2 className="h-3.5 w-3.5" />
-                    )}
+                    {removingId === repo.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                   </button>
 
                   <CardHeader className="flex-row items-start gap-3 space-y-0">
@@ -211,14 +246,25 @@ export default function DashboardPage() {
                       <CardTitle className="truncate font-repository text-sm">
                         {repo.owner}/{repo.name}
                       </CardTitle>
-                      <span
-                        className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${statusStyle.bg} ${statusStyle.text}`}
-                      >
+                      <span className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${statusStyle.bg} ${statusStyle.text}`}>
                         <span className={`h-1.5 w-1.5 rounded-full ${statusStyle.dot}`} />
-                        {statusStyle.label}
+                        <div className="flex flex-col">
+                          <span>{statusStyle.label}</span>
+                          <span className="text-[10px] opacity-75">{statusStyle.sublabel}</span>
+                        </div>
                       </span>
                     </div>
                   </CardHeader>
+
+                  {isIndexing && (
+                    <div className="border-t border-border px-4 py-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <Progress value={repo.progress} className="h-1.5 flex-1" />
+                        <span className="text-[11px] font-medium text-muted-foreground">{repo.progress}%</span>
+                      </div>
+                    </div>
+                  )}
+
                   <CardContent className="flex items-center justify-between border-t border-border pt-3 text-xs text-muted-foreground">
                     <span className="inline-flex items-center gap-1.5">
                       <GitBranch className="h-3.5 w-3.5" />
@@ -256,22 +302,13 @@ export default function DashboardPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>Remove repository?</AlertDialogTitle>
             <AlertDialogDescription>
-              {repoToRemove
-                ? `This removes ${repoToRemove.owner}/${repoToRemove.name} from SourceLens. This can’t be undone.`
-                : ""}
+              {repoToRemove ? `This removes ${repoToRemove.owner}/${repoToRemove.name} from SourceLens. This can't be undone.` : ""}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel disabled={removingId !== null}>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              disabled={removingId !== null}
-              onClick={() => void handleConfirmRemoveRepo()}
-            >
-              {removingId ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Trash2 className="h-4 w-4" />
-              )}
+            <AlertDialogAction disabled={removingId !== null} onClick={() => void handleConfirmRemoveRepo()}>
+              {removingId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
               Remove
             </AlertDialogAction>
           </AlertDialogFooter>

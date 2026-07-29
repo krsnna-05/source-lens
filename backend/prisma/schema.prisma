@@ -33,6 +33,7 @@ model Repository {
   latestRemoteCommit String?            @map("latest_remote_commit")
   lastIndexedCommit  String?            @map("last_indexed_commit")
   status             RepositoryStatus   @default(pending)
+  progress           Int                @default(0)
   indexMode          IndexMode          @default(manual) @map("index_mode")
   lastIndexedAt      DateTime?          @map("last_indexed_at")
   lastError          String?            @map("last_error")
@@ -69,7 +70,12 @@ enum RepositoryProvider {
 
 enum RepositoryStatus {
   pending
-  indexing
+  cloning
+  scanning
+  parsing
+  chunking
+  embedding
+  storing
   ready
   failed
 

@@ -56,6 +56,7 @@ function serializeRepository(repo: Repository) {
     provider: repo.provider,
     default_branch: repo.defaultBranch,
     status: repo.status,
+    progress: repo.progress,
     index_mode: repo.indexMode,
     last_indexed_at: repo.lastIndexedAt,
     last_error: repo.lastError,
@@ -154,7 +155,6 @@ export async function addRepository(
 
   await indexQueue.add("index-repository", {
     repositoryId: repository.id,
-    githubUrl: repository.url,
   });
 
   res.status(201).json(serializeRepository(repository));
