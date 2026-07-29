@@ -5,6 +5,12 @@ import prisma from "../database/prisma";
 import { scanDirectory } from "../utils/file-scanner";
 import { PROGRESS_STAGES } from "../utils/progress";
 
+// parse
+import Parser from "tree-sitter";
+import * as TSLanguage from "tree-sitter-typescript";
+import * as JSLanguage from "tree-sitter-javascript";
+import * as PythonLanguage from "tree-sitter-python";
+
 const REPOS_DIR = path.join(process.cwd(), ".repos");
 
 async function updateProgress(
@@ -19,8 +25,6 @@ async function updateProgress(
 }
 
 export async function indexRepository(repositoryId: string) {
-  let localPath: string = "";
-
   try {
     const repository = await prisma.repository.findUnique({
       where: { id: repositoryId },
@@ -35,17 +39,11 @@ export async function indexRepository(repositoryId: string) {
     console.log(`[${repositoryId}] Status: cloning (10%)`);
 
     await fs.mkdir(REPOS_DIR, { recursive: true });
-    localPath = path.join(REPOS_DIR, repository.owner, repository.name);
-
-    // Remove existing repo if it exists
-    try {
-      await fs.rm(localPath, { recursive: true, force: true });
-    } catch {
-      // Ignore errors if directory doesn't exist
-    }
+    const localPath = path.join(REPOS_DIR, repository.owner, repository.name);
 
     await cloneRepository(
       repository.url,
+
       localPath,
       repository.user.accessToken,
     );
@@ -80,10 +78,6 @@ export async function indexRepository(repositoryId: string) {
       where: { id: repositoryId },
       data: { lastIndexedAt: new Date() },
     });
-
-    // Clean up cloned repository from disk
-    await cleanupRepository(localPath);
-    console.log(`[${repositoryId}] Cleaned up local repository`);
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error occurred";
@@ -127,10 +121,65 @@ export async function scanRepository(
   return { files, count: files.length };
 }
 
-async function cleanupRepository(localPath: string): Promise<void> {
-  try {
-    await fs.rm(localPath, { recursive: true, force: true });
-  } catch (error) {
-    console.warn(`Failed to cleanup repository at ${localPath}:`, error);
+function parseContent(content: string, filePath: string) {
+  const parser = new Parser();
+
+  function getLanguage(filePath: string) {
+    if (filePath.endsWith(".ts")) {
+      return TSLanguage.typescript;
+    }
+
+    if (filePath.endsWith(".tsx")) {
+      return TSLanguage.tsx;
+    }
+
+    if (filePath.endsWith(".js") || filePath.endsWith(".jsx")) {
+      return JSLanguage.javascript;
+    }
+
+    if (filePath.endsWith(".py")) {
+      return PythonLanguage.python;
+    }
+
+    return null;
   }
+
+  const language = getLanguage(filePath);
+
+  if (!language) return null;
+
+  parser.setLanguage(language);
+  return parser.parse(content);
+}
+
+export async function parseRepository(files: string[]) {
+  if (files.length === 0) return [];
+
+  const supportedExtensions = ["tsx", "jsx", "ts", "js", "py"];
+  const parsedFiles: Array<{ file: string; ast: any }> = [];
+
+  const filteredFiles = files.filter((file) => {
+    const ext = file.split(".").pop()?.toLowerCase();
+    return supportedExtensions.includes(ext);
+  });
+
+  if (filteredFiles.length === 0) return [];
+
+  for (const file of filteredFiles) {
+    try {
+      const content = await fs.readFile(file, "utf-8");
+      const ast = parseContent(content, file);
+
+      if (ast) {
+        parsedFiles.push({ file, ast });
+        console.log(`✓ Parsed ${file}`);
+      } else {
+        console.log(`⊘ Unsupported format: ${file}`);
+      }
+    } catch (error) {
+      console.error(`✗ Failed to parse ${file}:`, error);
+    }
+  }
+
+  return parsedFiles;
 }
