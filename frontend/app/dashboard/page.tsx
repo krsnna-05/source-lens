@@ -238,38 +238,50 @@ export default function DashboardPage() {
                     {removingId === repo.id ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
                   </button>
 
-                  <CardHeader className="flex-row items-start gap-3 space-y-0">
-                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors group-hover:bg-indigo-600 group-hover:text-white">
-                      <FolderGit2 className="h-4.5 w-4.5" />
-                    </div>
-                    <div className="min-w-0 flex-1 pr-6">
-                      <CardTitle className="truncate font-repository text-sm">
-                        {repo.owner}/{repo.name}
-                      </CardTitle>
-                      <span className={`mt-1 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium ${statusStyle.bg} ${statusStyle.text}`}>
-                        <span className={`h-1.5 w-1.5 rounded-full ${statusStyle.dot}`} />
-                        <div className="flex flex-col">
-                          <span>{statusStyle.label}</span>
-                          <span className="text-[10px] opacity-75">{statusStyle.sublabel}</span>
-                        </div>
-                      </span>
+                  <CardHeader className="space-y-0 pb-0">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary text-primary-foreground transition-colors group-hover:bg-indigo-600 group-hover:text-white">
+                        <FolderGit2 className="h-5 w-5" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <CardTitle className="truncate text-base font-semibold">
+                          {repo.owner}
+                        </CardTitle>
+                        <p className="mt-0.5 truncate text-sm text-muted-foreground">
+                          {repo.name}
+                        </p>
+                      </div>
                     </div>
                   </CardHeader>
 
-                  {isIndexing && (
-                    <div className="border-t border-border px-4 py-3">
-                      <div className="flex items-center justify-between gap-2">
-                        <Progress value={repo.progress} className="h-1.5 flex-1" />
-                        <span className="text-[11px] font-medium text-muted-foreground">{repo.progress}%</span>
+                  <CardContent className="space-y-3 pt-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <span className={`h-2 w-2 rounded-full ${statusStyle.dot}`} />
+                        <span className="text-xs font-medium text-foreground">
+                          {statusStyle.label}
+                        </span>
                       </div>
+                      <span className="text-xs text-muted-foreground">
+                        {statusStyle.sublabel}
+                      </span>
                     </div>
-                  )}
 
-                  <CardContent className="flex items-center justify-between border-t border-border pt-3 text-xs text-muted-foreground">
-                    <span className="inline-flex items-center gap-1.5">
+                    {isIndexing && (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <Progress value={repo.progress} className="h-2 flex-1" />
+                          <span className="text-xs font-semibold text-muted-foreground w-8 text-right">
+                            {repo.progress}%
+                          </span>
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-1.5 border-t border-border pt-3 text-xs text-muted-foreground">
                       <GitBranch className="h-3.5 w-3.5" />
-                      {repo.default_branch}
-                    </span>
+                      <span className="truncate">{repo.default_branch}</span>
+                    </div>
                   </CardContent>
                 </Card>
               );
