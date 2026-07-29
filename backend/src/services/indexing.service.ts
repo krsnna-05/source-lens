@@ -19,6 +19,8 @@ async function updateProgress(
 }
 
 export async function indexRepository(repositoryId: string) {
+  let localPath: string = "";
+
   try {
     const repository = await prisma.repository.findUnique({
       where: { id: repositoryId },
@@ -33,7 +35,14 @@ export async function indexRepository(repositoryId: string) {
     console.log(`[${repositoryId}] Status: cloning (10%)`);
 
     await fs.mkdir(REPOS_DIR, { recursive: true });
-    const localPath = path.join(REPOS_DIR, repository.owner, repository.name);
+    localPath = path.join(REPOS_DIR, repository.owner, repository.name);
+
+    // Remove existing repo if it exists
+    try {
+      await fs.rm(localPath, { recursive: true, force: true });
+    } catch {
+      // Ignore errors if directory doesn't exist
+    }
 
     await cloneRepository(
       repository.url,
@@ -71,6 +80,10 @@ export async function indexRepository(repositoryId: string) {
       where: { id: repositoryId },
       data: { lastIndexedAt: new Date() },
     });
+
+    // Clean up cloned repository from disk
+    await cleanupRepository(localPath);
+    console.log(`[${repositoryId}] Cleaned up local repository`);
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error occurred";
@@ -112,4 +125,12 @@ export async function scanRepository(
   const files = await scanDirectory(localPath);
   console.log(`Found ${files.length} source files to index`);
   return { files, count: files.length };
+}
+
+async function cleanupRepository(localPath: string): Promise<void> {
+  try {
+    await fs.rm(localPath, { recursive: true, force: true });
+  } catch (error) {
+    console.warn(`Failed to cleanup repository at ${localPath}:`, error);
+  }
 }
