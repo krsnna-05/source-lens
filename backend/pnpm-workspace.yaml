@@ -3,3 +3,7 @@ allowBuilds:
   esbuild: true
   msgpackr-extract: true
   prisma: set this to true or false
+  tree-sitter: true
+  tree-sitter-javascript: true
+  tree-sitter-python: true
+  tree-sitter-typescript: true
