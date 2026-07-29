@@ -38,6 +38,9 @@ importers:
       tree-sitter:
         specifier: ^0.25.0
         version: 0.25.0
+      tree-sitter-javascript:
+        specifier: ^0.25.0
+        version: 0.25.0(tree-sitter@0.25.0)
       tree-sitter-python:
         specifier: ^0.25.0
         version: 0.25.0(tree-sitter@0.25.0)
@@ -1616,6 +1619,14 @@ packages:
       tree-sitter:
         optional: true
 
+  tree-sitter-javascript@0.25.0:
+    resolution: {integrity: sha512-1fCbmzAskZkxcZzN41sFZ2br2iqTYP3tKls1b/HKGNPQUVOpsUxpmGxdN/wMqAk3jYZnYBR1dd/y/0avMeU7dw==}
+    peerDependencies:
+      tree-sitter: ^0.25.0
+    peerDependenciesMeta:
+      tree-sitter:
+        optional: true
+
   tree-sitter-python@0.25.0:
     resolution: {integrity: sha512-eCmJx6zQa35GxaCtQD+wXHOhYqBxEL+bp71W/s3fcDMu06MrtzkVXR437dRrCrbrDbyLuUDJpAgycs7ncngLXw==}
     peerDependencies:
@@ -3174,6 +3185,13 @@ snapshots:
   touch@3.1.1: {}
 
   tree-sitter-javascript@0.23.1(tree-sitter@0.25.0):
+    dependencies:
+      node-addon-api: 8.9.0
+      node-gyp-build: 4.8.4
+    optionalDependencies:
+      tree-sitter: 0.25.0
+
+  tree-sitter-javascript@0.25.0(tree-sitter@0.25.0):
     dependencies:
       node-addon-api: 8.9.0
       node-gyp-build: 4.8.4

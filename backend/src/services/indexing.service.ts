@@ -41,9 +41,15 @@ export async function indexRepository(repositoryId: string) {
     await fs.mkdir(REPOS_DIR, { recursive: true });
     const localPath = path.join(REPOS_DIR, repository.owner, repository.name);
 
+    // Remove existing repo if it exists
+    try {
+      await fs.rm(localPath, { recursive: true, force: true });
+    } catch {
+      // Ignore errors if directory doesn't exist
+    }
+
     await cloneRepository(
       repository.url,
-
       localPath,
       repository.user.accessToken,
     );
@@ -61,6 +67,10 @@ export async function indexRepository(repositoryId: string) {
 
     await updateProgress(repositoryId, "parsing");
     console.log(`[${repositoryId}] Status: parsing (45%)`);
+
+    const parsedFiles = await parseRepository(files);
+    console.log(`[${repositoryId}] Parsed ${parsedFiles.length} files`);
+    console.log(parsedFiles);
 
     await updateProgress(repositoryId, "chunking");
     console.log(`[${repositoryId}] Status: chunking (60%)`);
